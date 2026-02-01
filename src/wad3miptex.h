@@ -2,6 +2,7 @@
 #define WAD3MIPTEX_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 typedef struct {
     char name[16];       // Name of the texture (same as directory entry)
@@ -29,8 +30,8 @@ typedef struct {
 int new_wad3miptex(FILE * f, WAD3MipTex * m);
 void print_wad3miptex(WAD3MipTex * m);
 
-int new_wad3miptexbuffers(FILE * f, WAD3MipTexBuffers * b);
-int new_wad3miptexbuf(size_t mipmap_size, uint8_t * mipmap_ptr, FILE * f);
+int new_wad3miptexbuffers(FILE * f, WAD3MipTex * m, WAD3MipTexBuffers * b, int32_t entry_offset);
+int new_wad3miptexbuf(FILE * f, size_t mipmap_size, uint8_t * mipmap_ptr, uint32_t offset, int32_t entry_offset);
 
 int new_wad3miptexpalettecolordata(FILE * f, WAD3MipTexPaletteColorData * c);
 int set_wad3miptexpalettecolordata_palette_size(FILE * f, WAD3MipTexPaletteColorData * c);

@@ -72,13 +72,13 @@ int create_texture(
         return 1;
     }
 
-    int slider = directory_entries[number - 1].entry_offset;
+    int32_t entry_offset = directory_entries[number - 1].entry_offset;
 
     // seek to a specific file using magic numbers from the directory_entry
     // values
     // size_t slider = 12 + (87852 * 7) + (49772 * 2);
     // size_t slider = 2530548;
-    fseek(f, slider, SEEK_SET);
+    fseek(f, entry_offset, SEEK_SET);
 
     WAD3MipTex m;
     if (new_wad3miptex(f, &m) != 0) {
@@ -102,12 +102,15 @@ int create_texture(
     b.mipmap_one = mipmap_one_indices;
     b.mipmap_two = mipmap_two_indices;
     b.mipmap_three = mipmap_three_indices;
-    if (new_wad3miptexbuffers(f, &b)) {
+    if (new_wad3miptexbuffers(f, &m, &b, entry_offset)) {
         fprintf(stderr, "Failed to read from file into mipmap buffers: %s\n",
             input_file_path);
         fclose(f);
         return 1;
     }
+
+    int32_t palette_pos = entry_offset + m.offsets[3] + b.mipmap_three_size;
+    fseek(f, palette_pos, SEEK_SET);
 
     WAD3MipTexPaletteColorData c;
     if (set_wad3miptexpalettecolordata_palette_size(f, &c)) {
@@ -156,6 +159,11 @@ int create_texture(
 
     fclose(f_zero);
 
+    // containers CONTAINERS LMAO
+    uint8_t rgb_data_one[(m.width / 2) * (m.height / 2) * 3];
+    uint8_t rgb_data_two[(m.width / 4) * (m.height / 4) * 3];
+    uint8_t rgb_data_three[(m.width / 8) * (m.height / 8) * 3];
+
     FILE * f_one = fopen(paths[1], "wb");
     if (f_one == NULL) {
         fprintf(stderr, "Cannot write to file: %s\n", output_path);
@@ -169,10 +177,51 @@ int create_texture(
 
     for (size_t y = 0; y < m.height / 2; y += 1) {
         for (size_t x = 0; x < m.width / 2; x += 1) {
-            size_t idx = y * m.width / 2 + x;
-            fputc(c.rgb_data[b.mipmap_one[idx] * 3 + 0], f_one);
-            fputc(c.rgb_data[b.mipmap_one[idx] * 3 + 1], f_one);
-            fputc(c.rgb_data[b.mipmap_one[idx] * 3 + 2], f_one);
+            int src_x = x * 2;
+            int src_y = y * 2;
+            int src_w = m.width;
+
+            int idx1 = (src_y * src_w + src_x);
+            int idx2 = (src_y * src_w + src_x + 1);
+            int idx3 = ((src_y + 1) * src_w + src_x);
+            int idx4 = ((src_y + 1) * src_w + src_x + 1);
+
+            int sum_r = c.rgb_data[b.mipmap_zero[idx1] * 3 + 0] +
+                c.rgb_data[b.mipmap_zero[idx2] * 3 + 0] +
+                c.rgb_data[b.mipmap_zero[idx3] * 3 + 0] +
+                c.rgb_data[b.mipmap_zero[idx4] * 3 + 0];
+
+            int sum_g = c.rgb_data[b.mipmap_zero[idx1] * 3 + 1] +
+                c.rgb_data[b.mipmap_zero[idx2] * 3 + 1] +
+                c.rgb_data[b.mipmap_zero[idx3] * 3 + 1] +
+                c.rgb_data[b.mipmap_zero[idx4] * 3 + 1];
+
+            int sum_b = c.rgb_data[b.mipmap_zero[idx1] * 3 + 2] +
+                c.rgb_data[b.mipmap_zero[idx2] * 3 + 2] +
+                c.rgb_data[b.mipmap_zero[idx3] * 3 + 2] +
+                c.rgb_data[b.mipmap_zero[idx4] * 3 + 2];
+
+            int dest_idx = (y * (m.width / 2) + x) * 3;
+
+            fputc((uint8_t)(sum_r / 4), f_one);
+            fputc((uint8_t)(sum_g / 4), f_one);
+            fputc((uint8_t)(sum_b / 4), f_one);
+
+            rgb_data_one[dest_idx + 0] = (uint8_t)(sum_r / 4);
+            rgb_data_one[dest_idx + 1] = (uint8_t)(sum_g / 4);
+            rgb_data_one[dest_idx + 2] = (uint8_t)(sum_b / 4);
+
+            // Nearest Neighbor
+            // int src_idx = (y * 2) * m.width + (x * 2);
+            // fputc(c.rgb_data[b.mipmap_zero[src_idx] * 3 + 0], f_one);
+            // fputc(c.rgb_data[b.mipmap_zero[src_idx] * 3 + 1], f_one);
+            // fputc(c.rgb_data[b.mipmap_zero[src_idx] * 3 + 2], f_one);
+
+            // Raw
+            // size_t idx = y * m.width / 2 + x;
+            // fputc(c.rgb_data[b.mipmap_one[idx] * 3 + 0], f_one);
+            // fputc(c.rgb_data[b.mipmap_one[idx] * 3 + 1], f_one);
+            // fputc(c.rgb_data[b.mipmap_one[idx] * 3 + 2], f_one);
         }
     }
 
@@ -191,10 +240,45 @@ int create_texture(
 
     for (size_t y = 0; y < m.height / 4; y += 1) {
         for (size_t x = 0; x < m.width / 4; x += 1) {
-            size_t idx = y * m.width / 4 + x;
-            fputc(c.rgb_data[b.mipmap_two[idx] * 3 + 0], f_two);
-            fputc(c.rgb_data[b.mipmap_two[idx] * 3 + 1], f_two);
-            fputc(c.rgb_data[b.mipmap_two[idx] * 3 + 2], f_two);
+            int src_x = x * 2;
+            int src_y = y * 2;
+            int src_w = m.width / 2;
+
+            int idx1 = (src_y * src_w + src_x);
+            int idx2 = (src_y * src_w + src_x + 1);
+            int idx3 = ((src_y + 1) * src_w + src_x);
+            int idx4 = ((src_y + 1) * src_w + src_x + 1);
+
+            int sum_r = rgb_data_one[idx1 * 3 + 0] +
+                rgb_data_one[idx2 * 3 + 0] +
+                rgb_data_one[idx3 * 3 + 0] +
+                rgb_data_one[idx4 * 3 + 0];
+
+            int sum_g = rgb_data_one[idx1 * 3 + 1] +
+                rgb_data_one[idx2 * 3 + 1] +
+                rgb_data_one[idx3 * 3 + 1] +
+                rgb_data_one[idx4 * 3 + 1];
+
+            int sum_b = rgb_data_one[idx1 * 3 + 2] +
+                rgb_data_one[idx2 * 3 + 2] +
+                rgb_data_one[idx3 * 3 + 2] +
+                rgb_data_one[idx4 * 3 + 2];
+
+            int dest_idx = (y * (m.width / 4) + x) * 3;
+
+            fputc((uint8_t)(sum_r / 4), f_two);
+            fputc((uint8_t)(sum_g / 4), f_two);
+            fputc((uint8_t)(sum_b / 4), f_two);
+
+            rgb_data_two[dest_idx + 0] = (uint8_t)(sum_r / 4);
+            rgb_data_two[dest_idx + 1] = (uint8_t)(sum_g / 4);
+            rgb_data_two[dest_idx + 2] = (uint8_t)(sum_b / 4);
+
+            // Raw
+            // size_t idx = y * m.width / 4 + x;
+            // fputc(c.rgb_data[b.mipmap_two[idx] * 3 + 0], f_two);
+            // fputc(c.rgb_data[b.mipmap_two[idx] * 3 + 1], f_two);
+            // fputc(c.rgb_data[b.mipmap_two[idx] * 3 + 2], f_two);
         }
     }
 
@@ -213,10 +297,45 @@ int create_texture(
 
     for (size_t y = 0; y < m.height / 8; y += 1) {
         for (size_t x = 0; x < m.width / 8; x += 1) {
-            size_t idx = y * m.width / 8 + x;
-            fputc(c.rgb_data[b.mipmap_three[idx] * 3 + 0], f_three);
-            fputc(c.rgb_data[b.mipmap_three[idx] * 3 + 1], f_three);
-            fputc(c.rgb_data[b.mipmap_three[idx] * 3 + 2], f_three);
+            int src_x = x * 2;
+            int src_y = y * 2;
+            int src_w = m.width / 4;
+
+            int idx1 = (src_y * src_w + src_x);
+            int idx2 = (src_y * src_w + src_x + 1);
+            int idx3 = ((src_y + 1) * src_w + src_x);
+            int idx4 = ((src_y + 1) * src_w + src_x + 1);
+
+            int sum_r = rgb_data_two[idx1 * 3 + 0] +
+                rgb_data_two[idx2 * 3 + 0] +
+                rgb_data_two[idx3 * 3 + 0] +
+                rgb_data_two[idx4 * 3 + 0];
+
+            int sum_g = rgb_data_two[idx1 * 3 + 1] +
+                rgb_data_two[idx2 * 3 + 1] +
+                rgb_data_two[idx3 * 3 + 1] +
+                rgb_data_two[idx4 * 3 + 1];
+
+            int sum_b = rgb_data_two[idx1 * 3 + 2] +
+                rgb_data_two[idx2 * 3 + 2] +
+                rgb_data_two[idx3 * 3 + 2] +
+                rgb_data_two[idx4 * 3 + 2];
+
+            int dest_idx = (y * (m.width / 8) + x) * 3;
+
+            fputc((uint8_t)(sum_r / 4), f_three);
+            fputc((uint8_t)(sum_g / 4), f_three);
+            fputc((uint8_t)(sum_b / 4), f_three);
+
+            rgb_data_three[dest_idx + 0] = (uint8_t)(sum_r / 4);
+            rgb_data_three[dest_idx + 1] = (uint8_t)(sum_g / 4);
+            rgb_data_three[dest_idx + 2] = (uint8_t)(sum_b / 4);
+
+            // Raw
+            // size_t idx = y * m.width / 8 + x;
+            // fputc(c.rgb_data[b.mipmap_three[idx] * 3 + 0], f_three);
+            // fputc(c.rgb_data[b.mipmap_three[idx] * 3 + 1], f_three);
+            // fputc(c.rgb_data[b.mipmap_three[idx] * 3 + 2], f_three);
         }
     }
 

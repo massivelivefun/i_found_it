@@ -36,27 +36,28 @@ void print_wad3miptex(WAD3MipTex * m) {
     }
 }
 
-int new_wad3miptexbuffers(FILE * f, WAD3MipTexBuffers * b) {
-    if (new_wad3miptexbuf(b->mipmap_zero_size, b->mipmap_zero, f)) {
+int new_wad3miptexbuffers(FILE * f, WAD3MipTex * m, WAD3MipTexBuffers * b, int32_t entry_offset) {
+    if (new_wad3miptexbuf(f, b->mipmap_zero_size, b->mipmap_zero, m->offsets[0], entry_offset)) {
         fprintf(stderr, "Failed to read mipmap_zero_size\n");
         return 1;
     }
-    if (new_wad3miptexbuf(b->mipmap_one_size, b->mipmap_one, f)) {
+    if (new_wad3miptexbuf(f, b->mipmap_one_size, b->mipmap_one, m->offsets[1], entry_offset)) {
         fprintf(stderr, "Failed to read mipmap_one_size\n");
         return 1;
     }
-    if (new_wad3miptexbuf(b->mipmap_two_size, b->mipmap_two, f)) {
+    if (new_wad3miptexbuf(f, b->mipmap_two_size, b->mipmap_two, m->offsets[2], entry_offset)) {
         fprintf(stderr, "Failed to read mipmap_two_size\n");
         return 1;
     }
-    if (new_wad3miptexbuf(b->mipmap_three_size, b->mipmap_three, f)) {
+    if (new_wad3miptexbuf(f, b->mipmap_three_size, b->mipmap_three, m->offsets[3], entry_offset)) {
         fprintf(stderr, "Failed to read mipmap_three_size\n");
         return 1;
     }
     return 0;
 }
 
-int new_wad3miptexbuf(size_t mipmap_size, uint8_t * mipmap_ptr, FILE * f) {
+int new_wad3miptexbuf(FILE * f, size_t mipmap_size, uint8_t * mipmap_ptr, uint32_t offset, int32_t entry_offset) {
+    fseek(f, entry_offset + offset, SEEK_SET);
     if (fread(mipmap_ptr, sizeof(uint8_t), mipmap_size, f) < mipmap_size) {
         fprintf(stderr, "Failed to read from file to put into mipmap\n");
         return 1;
