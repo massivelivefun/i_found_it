@@ -16,7 +16,11 @@ void clear_terminal() {
 #endif
 }
 
-int create_file_paths(char ** paths, const char * output_path, const char * texture_name) {
+int create_file_paths(
+    char ** paths,
+    const char * output_path,
+    const char * texture_name
+) {
     size_t path_length = strlen(output_path);
     size_t texture_length = strlen(texture_name);
     size_t output_file_size_without_mipmap_and_file_extension =
@@ -38,9 +42,11 @@ int create_file_paths(char ** paths, const char * output_path, const char * text
     size_t file_extension_length = strlen(file_extension);
 
     for (size_t i = 0; i < mipmap_size; i += 1) {
-        size_t output_file_size = output_file_size_without_mipmap_and_file_extension +
+        size_t output_file_size =
+            output_file_size_without_mipmap_and_file_extension +
             mipmap_lengths[i] + file_extension_length + 1;
-        char * output_file_name = (char *)malloc(sizeof(char) * output_file_size);
+        char * output_file_name =
+            (char *)malloc(sizeof(char) * output_file_size);
         strcpy(output_file_name, output_path);
         strcat(output_file_name, texture_name);
         strcat(output_file_name, mipmap_text[i]);
