@@ -121,8 +121,7 @@ int create_picture(
     // printf("%s", paths[mipmap_paths_count - 1]);
 
     int picture_result = create_mipmap_zero(
-        paths[0], output_path, pic.width,
-            pic.height,
+        paths[0], output_path, pic.width, pic.height,
             pic.indices,
             pic.rgb_data);
     if (picture_result != 0) {
