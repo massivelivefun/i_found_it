@@ -4,7 +4,7 @@ LDFLAGS = -lm
 
 SRC_DIR = src
 BUILD = build
-TARGET = $(BUILD)/ifi
+TARGET = ifi
 
 TEST_DIR = test
 TEST_BIN = $(BUILD)/run_tests
