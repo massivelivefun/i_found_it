@@ -21,6 +21,14 @@ int create_file_paths(
     const char * texture_name
 );
 
+int create_single_allocated_output_file_path(
+    char ** path,
+    const char * output_path,
+    const char * texture_name,
+    const char * texture_name_suffix,
+    const char * file_extension
+);
+
 int create_picture(
     FILE * f,
     const char * input_file_path,

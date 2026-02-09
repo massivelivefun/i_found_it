@@ -40,6 +40,42 @@ int create_file_paths(
     return 0;
 }
 
+// CONTRACT: Valid arguments need to be null-terminated strings.
+// EXCEPTION: @param char * texture_name_suffix - Can be passed in with NULL
+int create_single_allocated_output_file_path(
+    char ** path,
+    const char * output_path,
+    const char * texture_name,
+    const char * texture_name_suffix,
+    const char * file_extension
+) {
+    if (path == NULL || output_path == NULL || texture_name == NULL ||
+        file_extension == NULL) {
+        fprintf(stderr, "Arguments to `create_single_allocated_output_file_"
+            "path` cannot be null. Returning to caller.\n");
+        return 1;
+    }
+    // The suffix can be NULL so then it will have an empty length
+    size_t texture_name_suffix_len = (texture_name_suffix == NULL) ? 0 :
+        strlen(texture_name_suffix);
+    // Include null terminator into the length with the plus one
+    size_t output_file_name_len = strlen(output_path) + strlen(texture_name) +
+        texture_name_suffix_len + strlen(file_extension) + 1;
+    char * output_file_name =
+        (char *)malloc(sizeof(char) * output_file_name_len);
+    if (output_file_name == NULL) {
+        fprintf(stderr, "Failed to allocate memory for output file path."
+            "Returning to caller.\n");
+        return 1;
+    }
+    snprintf(output_file_name, output_file_name_len, "%s%s%s%s",
+             output_path, texture_name,
+             (texture_name_suffix == NULL) ? "" : texture_name_suffix,
+             file_extension);
+    *path = output_file_name;
+    return 0;
+}
+
 int create_picture(
     FILE * f,
     const char * input_file_path,
