@@ -42,6 +42,11 @@ clean:
 	@echo "Cleaning build directory..."
 	rm -rf $(BUILD)
 
+leaks: $(TARGET)
+	@echo "Running macOS Leaks check..."
+	# --atExit checks for leaks when the program finishes
+	leaks --atExit -- ./$(TARGET) $(ARGS)
+
 debug:
 	@echo "C Source files: $(SRC)"
 	@echo "Object files:   $(OBJ)"
