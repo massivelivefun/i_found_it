@@ -6,14 +6,14 @@
 #include "file_creation.h"
 
 void run_test(
-    const char *name, 
-    const char *out_path, 
-    const char *tex_name, 
-    const char *suffix, 
-    const char *ext, 
-    const char *expected
+    const char * name, 
+    const char * out_path, 
+    const char * tex_name, 
+    const char * suffix, 
+    const char * ext, 
+    const char * expected
 ) {
-    char *result = NULL;
+    char * result = NULL;
     printf("Test: %s ... ", name);
 
     int status = create_single_alloc_output_file_path(
