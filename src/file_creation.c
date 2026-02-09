@@ -213,14 +213,10 @@ int create_texture(
     size_t mipmap_paths_count = 4;
     char * paths[mipmap_paths_count];
     if (create_multi_alloc_output_file_paths(
-        paths,
-        output_path,
-        m.name,
-        mipmap_suffixes,
-        ".ppm",
-        4
+        paths, output_path, m.name,
+        mipmap_suffixes, ".ppm", mipmap_paths_count
     )) {
-        fprintf(stderr, "failed to create paths\n");
+        fprintf(stderr, "Failed to create paths.\n");
         return 1;
     }
     for (size_t i = 0; i < mipmap_paths_count - 1; i += 1) {
@@ -229,13 +225,7 @@ int create_texture(
     printf("%s", paths[mipmap_paths_count - 1]);
 
     if (classic) {
-        int classic_result = classic_func(
-            paths,
-            output_path,
-            &c,
-            &b,
-            &m
-        );
+        int classic_result = classic_func(paths, output_path, &c, &b, &m);
         if (classic_result != 0) {
             fprintf(stderr, "classic failed.\n");
             for (size_t i = 0; i < mipmap_paths_count; i += 1) {
@@ -244,13 +234,7 @@ int create_texture(
             return 1;
         }
     } else {
-        int modern_result = modern_func(
-            paths,
-            output_path,
-            &c,
-            &b,
-            &m
-        );
+        int modern_result = modern_func(paths, output_path, &c, &b, &m);
         if (modern_result != 0) {
             fprintf(stderr, "modern failed.\n");
             for (size_t i = 0; i < mipmap_paths_count; i += 1) {
