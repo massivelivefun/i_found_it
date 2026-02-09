@@ -5,7 +5,6 @@
 
 #include "file_creation.h"
 
-// --- Test Helper ---
 void run_test(
     const char *name, 
     const char *out_path, 
