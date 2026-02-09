@@ -109,19 +109,16 @@ int create_picture(
     size_t mipmap_paths_count = 4;
     char * paths[mipmap_paths_count];
     if (create_single_alloc_output_file_path(
-        paths,
-        output_path,
-        directory_entries[number - 1].texture_name,
-        NULL,
-        ".ppm"
+        paths, output_path, directory_entries[number - 1].texture_name,
+        NULL, ".ppm"
     )) {
         fprintf(stderr, "failed to create paths\n");
         return 1;
     }
-    for (size_t i = 0; i < mipmap_paths_count - 1; i += 1) {
-        printf("%s\n", paths[i]);
-    }
-    printf("%s", paths[mipmap_paths_count - 1]);
+    // for (size_t i = 0; i < mipmap_paths_count - 1; i += 1) {
+    //     printf("%s\n", paths[i]);
+    // }
+    // printf("%s", paths[mipmap_paths_count - 1]);
 
     int picture_result = create_mipmap_zero(
         paths[0], output_path, pic.width,
