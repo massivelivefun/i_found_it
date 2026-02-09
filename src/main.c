@@ -26,7 +26,7 @@ int main(int argc, char ** argv) {
         if (errno == EEXIST) {
             // printf("Directory already exists: %s (leaving it alone)\n", argv[2]);
         } else {
-            perror("Error creating directory");
+            perror("Error creating directory\n");
             return 1;
         }
     }
@@ -43,7 +43,6 @@ int main(int argc, char ** argv) {
         fclose(f);
         return 1;
     }
-    // printf("wad3header\n");
     // print_wad3header(&h);
 
     int validation_result = validate_magic(h.magic);
@@ -73,15 +72,7 @@ int main(int argc, char ** argv) {
     char menu_buffer[32];
 
     do {
-        printf("\n========================\n");
-        printf("       I FOUND IT        \n");
-        printf("========================\n");
-        printf(" 1. Create a texture\n");
-        printf(" 2. Print all directory entries in wad file\n");
-        printf(" 3. Toggle classic output on or off\n");
-        printf(" q. Quit\n");
-        printf("------------------------\n");
-        printf("Enter selection: ");
+        print_menu();
 
         if (fgets(menu_buffer, sizeof(menu_buffer), stdin) == NULL) {
             break; 

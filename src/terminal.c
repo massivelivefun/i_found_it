@@ -18,6 +18,20 @@ void clear_terminal() {
 #endif
 }
 
+void print_menu() {
+    printf(
+        "\n========================\n"
+        "       I FOUND IT       \n"
+        "========================\n"
+        " 1. Create a texture\n"
+        " 2. Print all directory entries in wad file\n"
+        " 3. Toggle classic output on or off\n"
+        " q. Quit\n"
+        "------------------------\n"
+        "Enter selection: "
+    );
+}
+
 int validate_magic(char * magic) {
 	char usable_magic[5];
     strncpy(usable_magic, magic, 4);
