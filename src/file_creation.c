@@ -80,28 +80,6 @@ int create_picture(
     }
     printf("%s", paths[mipmap_paths_count - 1]);
 
-    // FILE * f_zero = fopen(paths[0], "wb");
-    // if (f_zero == NULL) {
-    //     fprintf(stderr, "Cannot write to file: %s\n", output_path);
-    //     fclose(f_zero);
-    //     return 1;
-    // }
-
-    // fprintf(f_zero, "P6\n");
-    // fprintf(f_zero, "%d %d\n", pic.width, pic.height);
-    // fprintf(f_zero, "255\n");
-
-    // for (size_t y = 0; y < pic.height; y += 1) {
-    //     for (size_t x = 0; x < pic.width; x += 1) {
-    //         size_t idx = y * pic.width + x;
-    //         fputc(pic.rgb_data[pic.indices[idx] * 3 + 0], f_zero);
-    //         fputc(pic.rgb_data[pic.indices[idx] * 3 + 1], f_zero);
-    //         fputc(pic.rgb_data[pic.indices[idx] * 3 + 2], f_zero);
-    //     }
-    // }
-
-    // fclose(f_zero);
-
     int picture_result = create_mipmap_zero(
         paths[0], output_path, pic.width,
             pic.height,
@@ -287,27 +265,22 @@ int classic_func(
 ) {
     int mm_zero_result = create_mipmap_zero(
         paths[0], output_path, m->width,
-            m->height,
-            b->mipmap_zero,
-            c->rgb_data);
+        m->height, b->mipmap_zero, c->rgb_data);
     if (mm_zero_result != 0) {
         fprintf(stderr, "Failed to create mipmap zero\n");
         return 1;
     }
-    int mm_one_result = create_mipmap_one(
-        paths[1], output_path, c, b, m);
+    int mm_one_result = create_mipmap_one(paths[1], output_path, c, b, m);
     if (mm_one_result != 0) {
         fprintf(stderr, "Failed to create mipmap one\n");
         return 1;
     }
-    int mm_two_result = create_mipmap_two(
-        paths[2], output_path, c, b, m);
+    int mm_two_result = create_mipmap_two(paths[2], output_path, c, b, m);
     if (mm_two_result != 0) {
         fprintf(stderr, "Failed to create mipmap two\n");
         return 1;
     }
-    int mm_three_result = create_mipmap_three(
-        paths[3], output_path, c, b, m);
+    int mm_three_result = create_mipmap_three(paths[3], output_path, c, b, m);
     if (mm_three_result != 0) {
         fprintf(stderr, "Failed to create mipmap three\n");
         return 1;
@@ -322,9 +295,6 @@ int create_mipmap_zero(
     uint32_t height,
     uint8_t * indices,
     uint8_t * rgb_data
-    // const WAD3MipTexPaletteColorData * c,
-    // const WAD3MipTexBuffers * b,
-    // const WAD3MipTex * m
 ) {
     FILE * f = fopen(path, "wb");
     if (f == NULL) {
@@ -507,8 +477,6 @@ int create_mipmap_one_modern(
 int create_mipmap_two_modern(
     const char * path,
     const char * output_path,
-    // const WAD3MipTexPaletteColorData * c,
-    // const WAD3MipTexBuffers * b,
     const WAD3MipTex * m,
     uint8_t * rgb_data_one,
     uint8_t * rgb_data_two
@@ -569,8 +537,6 @@ int create_mipmap_two_modern(
 int create_mipmap_three_modern(
     const char * path,
     const char * output_path,
-    // const WAD3MipTexPaletteColorData * c,
-    // const WAD3MipTexBuffers * b,
     const WAD3MipTex * m,
     uint8_t * rgb_data_two,
     uint8_t * rgb_data_three
