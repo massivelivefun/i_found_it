@@ -45,4 +45,6 @@ clean:
 debug:
 	@echo "C Source files: $(SRC)"
 	@echo "Object files:   $(OBJ)"
+	@echo "Header files found: $(DEPS)"                                                                                                                                        
+	@echo "Targets to build:   $(TARGET)"
 	@echo "Test Objects:   $(OBJ_NO_MAIN)"

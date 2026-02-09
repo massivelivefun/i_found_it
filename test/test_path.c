@@ -43,24 +43,24 @@ int main() {
            "----------------\n");
 
     run_test("Standard",
-             "/tmp/", "Grass", "_Diff", ".png",
-             "/tmp/Grass_Diff.png");
+             "/tmp/", "Grass", "_mm0", ".ppm",
+             "/tmp/Grass_mm0.ppm");
 
     run_test("Empty Suffix",
-             "/tmp/", "Grass", "", ".png",
-             "/tmp/Grass.png");
+             "/tmp/", "Water", "", ".ppm",
+             "/tmp/Water.ppm");
 
     run_test("No Path",
-             "", "Grass", "_Diff", ".png",
-             "Grass_Diff.png");
+             "", "Lava", "_mm1", ".ppm",
+             "Lava_mm1.ppm");
 
     run_test("Complex Ext",
              "/data/", "Map", "", ".tar.gz",
              "/data/Map.tar.gz");
 
     run_test("NULL Suffix",
-             "/tmp/", "Grass", NULL, ".png",
-             "/tmp/Grass.png");
+             "/tmp/", "Tree", NULL, ".ppm",
+             "/tmp/Tree.ppm");
 
     printf("----------------\n"
            "Tests Complete.\n");
