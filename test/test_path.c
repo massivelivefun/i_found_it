@@ -16,7 +16,7 @@ void run_test(
     char *result = NULL;
     printf("Test: %s ... ", name);
 
-    int status = create_single_allocated_output_file_path(
+    int status = create_single_alloc_output_file_path(
         &result, out_path, tex_name, suffix, ext
     );
 

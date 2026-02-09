@@ -15,13 +15,16 @@
 
 #include "terminal.h"
 
-int create_file_paths(
+int create_multi_alloc_output_file_paths(
     char ** paths,
     const char * output_path,
-    const char * texture_name
+    const char * texture_name,
+    const char ** texture_name_suffixes,
+    const char * file_extension,
+    size_t texture_count
 );
 
-int create_single_allocated_output_file_path(
+int create_single_alloc_output_file_path(
     char ** path,
     const char * output_path,
     const char * texture_name,

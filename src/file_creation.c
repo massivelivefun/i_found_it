@@ -1,48 +1,49 @@
 #include "file_creation.h"
 
-int create_file_paths(
+// CONTRACT: Valid arguments need to be null-terminated strings.
+// @param char * texture_name_suffixes - CANNOT be passed in with NULL
+// 
+int create_multi_alloc_output_file_paths(
     char ** paths,
     const char * output_path,
-    const char * texture_name
+    const char * texture_name,
+    const char ** texture_name_suffixes,
+    const char * file_extension,
+    size_t texture_count
 ) {
-    size_t path_length = strlen(output_path);
-    size_t texture_length = strlen(texture_name);
-    size_t output_file_size_without_mipmap_and_file_extension =
-        path_length + texture_length;
-
-    size_t mipmap_size = 4;
-    char * mipmap_text[mipmap_size];
-    mipmap_text[0] = "_mm0";
-    mipmap_text[1] = "_mm1";
-    mipmap_text[2] = "_mm2";
-    mipmap_text[3] = "_mm3";
-
-    size_t mipmap_lengths[mipmap_size];
-    for (size_t i = 0; i < mipmap_size; i += 1) {
-        mipmap_lengths[i] = strlen(mipmap_text[i]);
+    if (paths == NULL || output_path == NULL || texture_name == NULL ||
+        (texture_name_suffixes == NULL && texture_count > 0) ||
+        file_extension == NULL) {
+        fprintf(stderr, "Arguments to `create_multi_alloc_output_file_paths`"
+            " cannot be null. Returning to caller.\n");
+        return 1;
     }
 
-    char * file_extension = ".ppm";
-    size_t file_extension_length = strlen(file_extension);
+    for (size_t i = 0; i < texture_count; i++) {
+        int result = create_single_alloc_output_file_path(
+            &paths[i], 
+            output_path, 
+            texture_name, 
+            texture_name_suffixes[i], 
+            file_extension
+        );
 
-    for (size_t i = 0; i < mipmap_size; i += 1) {
-        size_t output_file_size =
-            output_file_size_without_mipmap_and_file_extension +
-            mipmap_lengths[i] + file_extension_length + 1;
-        char * output_file_name =
-            (char *)malloc(sizeof(char) * output_file_size);
-        strcpy(output_file_name, output_path);
-        strcat(output_file_name, texture_name);
-        strcat(output_file_name, mipmap_text[i]);
-        strcat(output_file_name, file_extension);
-        paths[i] = output_file_name;
+        if (result != 0) {
+            fprintf(stderr, "Error creating path for mipmap %zu.\n", i);
+            // Free all of the valid allocations made, which is i
+            for (size_t j = 0; j < i; j++) {
+                free(paths[j]);
+                paths[j] = NULL;
+            }
+            return 1;
+        }
     }
     return 0;
 }
 
 // CONTRACT: Valid arguments need to be null-terminated strings.
 // EXCEPTION: @param char * texture_name_suffix - Can be passed in with NULL
-int create_single_allocated_output_file_path(
+int create_single_alloc_output_file_path(
     char ** path,
     const char * output_path,
     const char * texture_name,
@@ -107,7 +108,13 @@ int create_picture(
 
     size_t mipmap_paths_count = 4;
     char * paths[mipmap_paths_count];
-    if (create_file_paths(paths, output_path, directory_entries[number - 1].texture_name)) {
+    if (create_single_alloc_output_file_path(
+        paths,
+        output_path,
+        directory_entries[number - 1].texture_name,
+        NULL,
+        ".ppm"
+    )) {
         fprintf(stderr, "failed to create paths\n");
         return 1;
     }
@@ -202,9 +209,17 @@ int create_texture(
     }
     // print_wad3miptexpalettecolordata(&c);
 
+    const char * mipmap_suffixes[] = { "_mm0", "_mm1", "_mm2", "_mm3" };
     size_t mipmap_paths_count = 4;
     char * paths[mipmap_paths_count];
-    if (create_file_paths(paths, output_path, m.name)) {
+    if (create_multi_alloc_output_file_paths(
+        paths,
+        output_path,
+        m.name,
+        mipmap_suffixes,
+        ".ppm",
+        4
+    )) {
         fprintf(stderr, "failed to create paths\n");
         return 1;
     }
