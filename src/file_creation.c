@@ -14,22 +14,19 @@ int create_multi_alloc_output_file_paths(
     if (paths == NULL || output_path == NULL || texture_name == NULL ||
         (texture_name_suffixes == NULL && texture_count > 0) ||
         file_extension == NULL) {
-        fprintf(stderr, "Arguments to `create_multi_alloc_output_file_paths`"
-            " cannot be null. Returning to caller.\n");
+        fprintf(stderr, "Arguments to `create_multi_alloc_output_file_paths` "
+            "cannot be null. Returning to caller.\n");
         return 1;
     }
 
     for (size_t i = 0; i < texture_count; i++) {
         int result = create_single_alloc_output_file_path(
-            &paths[i], 
-            output_path, 
-            texture_name, 
-            texture_name_suffixes[i], 
-            file_extension
+            &paths[i], output_path, texture_name,
+            texture_name_suffixes[i], file_extension
         );
 
         if (result != 0) {
-            fprintf(stderr, "Error creating path for mipmap %zu.\n", i);
+            fprintf(stderr, "Error creating path for MipMap_%zu.\n", i);
             // Free all of the valid allocations made, which is i
             for (size_t j = 0; j < i; j++) {
                 free(paths[j]);
@@ -52,8 +49,8 @@ int create_single_alloc_output_file_path(
 ) {
     if (path == NULL || output_path == NULL || texture_name == NULL ||
         file_extension == NULL) {
-        fprintf(stderr, "Arguments to `create_single_allocated_output_file_"
-            "path` cannot be null. Returning to caller.\n");
+        fprintf(stderr, "Arguments to `create_single_alloc_output_file_path` "
+            "cannot be null. Returning to caller.\n");
         return 1;
     }
     // The suffix can be NULL so then it will have an empty length
@@ -103,16 +100,28 @@ int create_picture(
     int result = new_wad3pic(f, &pic);
     if (result != 0) {
         fprintf(stderr, "failed to create wad3pic: %s\n", input_file_path);
+        free(pic.indices);
+        pic.indices = NULL;
+        free(pic.rgb_data);
+        pic.rgb_data = NULL;
         return 1;
     }
 
     size_t mipmap_paths_count = 4;
     char * paths[mipmap_paths_count];
+    // for (size_t i = 0; i < mipmap_paths_count; i += 1) {
+    //     paths[i] = NULL;
+    // }
     if (create_single_alloc_output_file_path(
         paths, output_path, directory_entries[number - 1].texture_name,
         NULL, ".ppm"
     )) {
-        fprintf(stderr, "failed to create paths\n");
+        // If this fails then the memory from paths was cleaned up in the call
+        fprintf(stderr, "Failed to create paths.\n");
+        free(pic.indices);
+        pic.indices = NULL;
+        free(pic.rgb_data);
+        pic.rgb_data = NULL;
         return 1;
     }
     // for (size_t i = 0; i < mipmap_paths_count - 1; i += 1) {
@@ -125,14 +134,25 @@ int create_picture(
             pic.indices,
             pic.rgb_data);
     if (picture_result != 0) {
+        for (size_t i = 0; i < mipmap_paths_count; i += 1) {
+            free(paths[i]);
+            paths[i] = NULL;
+        }
+        free(pic.indices);
+        pic.indices = NULL;
+        free(pic.rgb_data);
+        pic.rgb_data = NULL;
         fprintf(stderr, "Failed to create mipmap zero\n");
         return 1;
     }
 
     free(pic.indices);
+    pic.indices = NULL;
     free(pic.rgb_data);
+    pic.rgb_data = NULL;
     for (size_t i = 0; i < mipmap_paths_count; i += 1) {
         free(paths[i]);
+        paths[i] = NULL;
     }
     return 0;
 }
@@ -167,24 +187,31 @@ int create_texture(
         fclose(f);
         return 1;
     }
-    print_wad3miptex(&m);
+    // print_wad3miptex(&m);
 
     WAD3MipTexBuffers b;
-    b.mipmap_zero_size = m.width * m.height;
-    b.mipmap_one_size = (m.width / 2) * (m.height / 2);
-    b.mipmap_two_size = (m.width / 4) * (m.height / 4);
-    b.mipmap_three_size = (m.width / 8) * (m.height / 8);
-    uint8_t mipmap_zero_indices[b.mipmap_zero_size];
-    uint8_t mipmap_one_indices[b.mipmap_one_size];
-    uint8_t mipmap_two_indices[b.mipmap_two_size];
-    uint8_t mipmap_three_indices[b.mipmap_three_size];
-    b.mipmap_zero = mipmap_zero_indices;
-    b.mipmap_one = mipmap_one_indices;
-    b.mipmap_two = mipmap_two_indices;
-    b.mipmap_three = mipmap_three_indices;
-    if (new_wad3miptexbuffers(f, &m, &b, entry_offset)) {
+    // b.mipmap_zero_size = m.width * m.height;
+    // b.mipmap_one_size = (m.width / 2) * (m.height / 2);
+    // b.mipmap_two_size = (m.width / 4) * (m.height / 4);
+    // b.mipmap_three_size = (m.width / 8) * (m.height / 8);
+    // uint8_t mipmap_zero_indices[b.mipmap_zero_size];
+    // uint8_t mipmap_one_indices[b.mipmap_one_size];
+    // uint8_t mipmap_two_indices[b.mipmap_two_size];
+    // uint8_t mipmap_three_indices[b.mipmap_three_size];
+    // b.mipmap_zero = mipmap_zero_indices;
+    // b.mipmap_one = mipmap_one_indices;
+    // b.mipmap_two = mipmap_two_indices;
+    // b.mipmap_three = mipmap_three_indices;
+    // if (new_wad3miptexbuffers(f, &m, &b, entry_offset)) {
+    //     fprintf(stderr, "Failed to read from file into mipmap buffers: %s\n",
+    //         input_file_path);
+    //     fclose(f);
+    //     return 1;
+    // }
+    if (new_alloc_wad3miptexbuffers(f, &m, &b, entry_offset)) {
         fprintf(stderr, "Failed to read from file into mipmap buffers: %s\n",
             input_file_path);
+        free_alloc_wad3miptexbuffers(&b);
         fclose(f);
         return 1;
     }
@@ -195,12 +222,14 @@ int create_texture(
     WAD3MipTexPaletteColorData c;
     if (set_wad3miptexpalettecolordata_palette_size(f, &c)) {
         fprintf(stderr, "Failed to read palette_size\n");
+        free_alloc_wad3miptexbuffers(&b);
         return 1;
     }
     uint8_t rgb_data[c.palette_size * 3];
     c.rgb_data = rgb_data;
     if (set_wad3miptexpalettecolordata_rgb_data(f, &c)) {
         fprintf(stderr, "Failed to read rgb_data\n");
+        free_alloc_wad3miptexbuffers(&b);
         return 1;
     }
     // print_wad3miptexpalettecolordata(&c);
@@ -213,6 +242,8 @@ int create_texture(
         mipmap_suffixes, ".ppm", mipmap_paths_count
     )) {
         fprintf(stderr, "Failed to create paths.\n");
+        free_alloc_wad3miptexbuffers(&b);
+        // the paths were cleaned up if this fucntion failed
         return 1;
     }
     for (size_t i = 0; i < mipmap_paths_count - 1; i += 1) {
@@ -226,7 +257,9 @@ int create_texture(
             fprintf(stderr, "classic failed.\n");
             for (size_t i = 0; i < mipmap_paths_count; i += 1) {
                 free(paths[i]);
+                paths[i] = NULL;
             }
+            free_alloc_wad3miptexbuffers(&b);
             return 1;
         }
     } else {
@@ -235,14 +268,18 @@ int create_texture(
             fprintf(stderr, "modern failed.\n");
             for (size_t i = 0; i < mipmap_paths_count; i += 1) {
                 free(paths[i]);
+                paths[i] = NULL;
             }
+            free_alloc_wad3miptexbuffers(&b);
             return 1;
         }
     }
 
     for (size_t i = 0; i < mipmap_paths_count; i += 1) {
         free(paths[i]);
+        paths[i] = NULL;
     }
+    free_alloc_wad3miptexbuffers(&b);
     return 0;
 }
 

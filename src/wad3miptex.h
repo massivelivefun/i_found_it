@@ -2,6 +2,7 @@
 #define WAD3MIPTEX_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 typedef struct {
@@ -32,10 +33,21 @@ void print_wad3miptex(WAD3MipTex * m);
 
 int new_wad3miptexbuffers(FILE * f, WAD3MipTex * m, WAD3MipTexBuffers * b, int32_t entry_offset);
 int new_wad3miptexbuf(FILE * f, size_t mipmap_size, uint8_t * mipmap_ptr, uint32_t offset, int32_t entry_offset);
+int new_alloc_wad3miptexbuffers(
+    FILE * f,
+    WAD3MipTex * m,
+    WAD3MipTexBuffers * b,
+    int32_t entry_offset
+);
+int free_alloc_wad3miptexbuffers(WAD3MipTexBuffers * b);
 
 int new_wad3miptexpalettecolordata(FILE * f, WAD3MipTexPaletteColorData * c);
+
+int new_alloc_wad3miptexpalettecolordata(WAD3MipTexPaletteColorData * c, FILE * f);
+
 int set_wad3miptexpalettecolordata_palette_size(FILE * f, WAD3MipTexPaletteColorData * c);
 int set_wad3miptexpalettecolordata_rgb_data(FILE * f, WAD3MipTexPaletteColorData * c);
 void print_wad3miptexpalettecolordata(WAD3MipTexPaletteColorData * c);
+int free_WAD3MipTexPaletteColorData(WAD3MipTexPaletteColorData * c);
 
 #endif

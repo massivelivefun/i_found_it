@@ -1,43 +1,30 @@
+#include "wad3directoryentry.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "wad3directoryentry.h"
+#include "endian_utils.h"
+#include "file_utils.h"
+#include "ifi_errors.h"
 
-int new_wad3directoryentry(FILE * f, WAD3DirectoryEntry * d) {
-	if (f == NULL || d == NULL) {
-		return 1;
+int new_wad3directoryentry_from_file(WAD3DirectoryEntry * d, FILE * f) {
+	if (d == NULL || f == NULL) { return IFI_ERROR_NULL_ARGS; }
+	if (read_i32le_from_file(f, &d->entry_offset)) { return IFI_ERROR_READ; }
+	if (read_i32le_from_file(f, &d->disk_size)) { return IFI_ERROR_READ; }
+	if (read_i32le_from_file(f, &d->entry_size)) { return IFI_ERROR_READ; }
+	if (read_char_from_file(f, &d->file_type)) { return IFI_ERROR_READ; }
+	if (read_i8_from_file(f, &d->compressed)) { return IFI_ERROR_READ; }
+	if (fseek(f, sizeof(int16_t), SEEK_CUR) != 0) { return IFI_ERROR_READ; }
+	if (read_fixed_string_from_file(f, d->texture_name, 16)) {
+		return IFI_ERROR_READ;
 	}
-	if (fread(&(d->entry_offset), sizeof(int), 1, f) < 1) {
-		return 1;
-	}
-	if (fread(&(d->disk_size), sizeof(int), 1, f) < 1) {
-		return 1;
-	}
-	if (fread(&(d->entry_size), sizeof(int), 1, f) < 1) {
-		return 1;
-	}
-	if (fread(&(d->file_type), sizeof(char), 1, f) < 1) {
-		return 1;
-	}
-	if (fread(&(d->compressed), sizeof(_Bool), 1, f) < 1) {
-		return 1;
-	}
-	fseek(f, sizeof(short), SEEK_CUR);
-	if (fread(&(d->texture_name), sizeof(char), 15, f) < 15) {
-		return 1;
-	}
-	fseek(f, sizeof(char), SEEK_CUR);
-	d->texture_name[15] = '\0';
 	return 0;
 }
 
-void print_wad3directoryentry(WAD3DirectoryEntry * d) {
-	printf("\n");
-	printf("entry_offset: %d\n", d->entry_offset);
-	printf("disk_size: %d\n", d->disk_size);
-	printf("entry_size: %d\n", d->entry_size);
-	printf("file_type: %c\n", d->file_type);
-	printf("compressed: %d\n", d->compressed);
-	// printf("padding: %d\n", d->padding);
-	printf("texture_name: %s\n", d->texture_name);
+void print_wad3directoryentry(const WAD3DirectoryEntry * d) {
+	if (d == NULL) { return; }
+	printf("\nentry_offset: %d\ndisk_size: %d\nentry_size: %d\nfile_type: "
+		"%c\ncompressed: %d\ntexture_name: %.16s\n", d->entry_offset,
+		d->disk_size, d->entry_size, d->file_type, d->compressed,
+		d->texture_name);
 }

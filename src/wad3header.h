@@ -2,6 +2,7 @@
 #define WAD3HEADER_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 typedef struct {
 	char magic[4];
@@ -9,7 +10,7 @@ typedef struct {
 	uint32_t dir_offset;
 } WAD3Header;
 
-int new_wad3header(FILE * f, WAD3Header * h);
-void print_wad3header(WAD3Header * h);
+int new_wad3header_from_file(WAD3Header * h, FILE * f);
+void print_wad3header(const WAD3Header * h);
 
 #endif

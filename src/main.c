@@ -38,7 +38,7 @@ int main(int argc, char ** argv) {
     }
 
     WAD3Header h;
-    if (new_wad3header(f, &h) != 0) {
+    if (new_wad3header_from_file(&h, f) != 0) {
         fprintf(stderr, "Failed to read header: %s\n", argv[1]);
         fclose(f);
         return 1;
@@ -47,7 +47,7 @@ int main(int argc, char ** argv) {
 
     int validation_result = validate_magic(h.magic);
     if (validation_result != 0) {
-        fprintf(stderr, "unsupported magic\n");
+        fprintf(stderr, "Unsupported Magic.\n");
         fclose(f);
         return 1;
     }
@@ -58,7 +58,7 @@ int main(int argc, char ** argv) {
     WAD3DirectoryEntry directory_entries[h.num_dirs];
     for (size_t i = 0; i < h.num_dirs; i += 1) {
         WAD3DirectoryEntry d;
-        if (new_wad3directoryentry(f, &d) != 0) {
+        if (new_wad3directoryentry_from_file(&d, f) != 0) {
             fprintf(stderr, "Failed to read directory entry: %s\n", argv[1]);
             fclose(f);
             return 1;
