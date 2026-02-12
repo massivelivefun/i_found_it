@@ -8,6 +8,9 @@ typedef enum {
     IFI_ERROR_SIGNATURE,  // Magic "IWAD" or "PWAD" not found
     IFI_ERROR_MEMORY,     // malloc failed
     IFI_ERROR_NULL_ARGS,  // Arguments were null
+    IFI_ERROR_ENCODING,   // Encoding error, e.g. snprintf negative numbers
+    IFI_ERROR_WRITE,      // Write error, e.g. printf negative numbers
+    IFI_ERROR_INVALID,    // Invalid state of object being constructed
 } ifi_error_t;
 
 #endif
