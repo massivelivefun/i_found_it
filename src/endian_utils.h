@@ -12,8 +12,19 @@
     #define IS_HOST_BIG_ENDIAN 0
     #define IS_HOST_LITTLE_ENDIAN 1
 #else
-    #define IS_HOST_BIG_ENDIAN is_host_big_endian()
-    #define IS_HOST_LITTLE_ENDIAN is_host_little_endian()
+    #if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || \
+            defined(_M_X64) || defined(__ARMEL__) || defined(__THUMBEL__) || \
+            defined(__AARCH64EL__) || defined(_M_ARM)
+        #define IS_HOST_BIG_ENDIAN 0
+        #define IS_HOST_LITTLE_ENDIAN 1
+    #elif defined(__ARMEB__) || defined(__THUMBEB__) || \
+            defined(__AARCH64EB__) || defined(__sparc) || defined(__sparc__)
+        #define IS_HOST_BIG_ENDIAN 1
+        #define IS_HOST_LITTLE_ENDIAN 0
+    #else
+        #define IS_HOST_BIG_ENDIAN (is_host_big_endian())
+        #define IS_HOST_LITTLE_ENDIAN (is_host_little_endian())
+    #endif
 #endif
 
 // FLOAT & DOUBLE BIT CONVERSIONS
