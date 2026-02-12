@@ -4,14 +4,16 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define MAX_TEXTURE_NAME 16
+
 typedef struct {
-	int32_t entry_offset;  // Offset from the beginning of the WAD3 data
-    int32_t disk_size;     // The entry's size in the archive in bytes
-    int32_t entry_size;    // The entry's uncompressed size
-    char file_type;        // File type of the entry
-    int8_t compressed;     // Whether the file was compressed
+	int32_t entry_offset; // Offset from the beginning of the WAD3 data
+    int32_t disk_size;    // The entry's size in the archive in bytes
+    int32_t entry_size;   // The entry's uncompressed size
+    char file_type;       // File type of the entry
+    int8_t compressed;    // Whether the file was compressed
     int16_t padding;
-    char texture_name[16]; // Null-terminated texture name
+    char texture_name[MAX_TEXTURE_NAME]; // Null-terminated texture name
 } WAD3DirectoryEntry;
 
 int new_wad3directoryentry_from_file(WAD3DirectoryEntry * d, FILE * f);

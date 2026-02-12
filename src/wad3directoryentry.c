@@ -14,8 +14,9 @@ int new_wad3directoryentry_from_file(WAD3DirectoryEntry * d, FILE * f) {
 	if (read_i32le_from_file(f, &d->entry_size)) { return IFI_ERROR_READ; }
 	if (read_char_from_file(f, &d->file_type)) { return IFI_ERROR_READ; }
 	if (read_i8_from_file(f, &d->compressed)) { return IFI_ERROR_READ; }
+	// Skip padding field
 	if (fseek(f, sizeof(int16_t), SEEK_CUR) != 0) { return IFI_ERROR_READ; }
-	if (read_fixed_string_from_file(f, d->texture_name, 16)) {
+	if (read_fixed_string_from_file(f, d->texture_name, MAX_TEXTURE_NAME)) {
 		return IFI_ERROR_READ;
 	}
 	return 0;
