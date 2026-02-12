@@ -11,6 +11,6 @@ typedef struct {
 } WAD3Header;
 
 int new_wad3header_from_file(WAD3Header * h, FILE * f);
-void print_wad3header(const WAD3Header * h);
+int print_wad3header(const WAD3Header * h);
 
 #endif
