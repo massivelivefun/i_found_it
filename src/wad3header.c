@@ -11,9 +11,10 @@ int new_wad3header_from_file(WAD3Header * h, FILE * f) {
 	return IFI_OK;
 }
 
-void print_wad3header(const WAD3Header * h) {
-	if (h == NULL) { return; }
+int print_wad3header(const WAD3Header * h) {
+	if (h == NULL) { return IFI_ERROR_NULL_ARGS; }
 	// %.4s is needed, magic is not a null terminating string
 	printf("\nmagic: %.4s\nnum_dirs: %u\ndir_offset: %u\n",
     	h->magic, h->num_dirs, h->dir_offset);
+	return IFI_OK;
 }

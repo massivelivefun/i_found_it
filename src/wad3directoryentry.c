@@ -22,10 +22,11 @@ int new_wad3directoryentry_from_file(WAD3DirectoryEntry * d, FILE * f) {
 	return 0;
 }
 
-void print_wad3directoryentry(const WAD3DirectoryEntry * d) {
-	if (d == NULL) { return; }
-	printf("\nentry_offset: %d\ndisk_size: %d\nentry_size: %d\nfile_type: "
-		"%c\ncompressed: %d\ntexture_name: %.16s\n", d->entry_offset,
-		d->disk_size, d->entry_size, d->file_type, d->compressed,
-		d->texture_name);
+int print_wad3directoryentry(const WAD3DirectoryEntry * d) {
+	if (d == NULL) { return IFI_ERROR_NULL_ARGS; }
+	printf("\nentry_offset: %d\ndisk_size: %d\nentry_size: %d\n"
+		"file_type: %c\ncompressed: %d\ntexture_name: %.16s\n",
+		d->entry_offset, d->disk_size, d->entry_size, d->file_type,
+		d->compressed, d->texture_name);
+	return IFI_OK;
 }
