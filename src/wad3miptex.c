@@ -1,39 +1,48 @@
-#include <stdio.h>
-
 #include "wad3miptex.h"
 
-int new_wad3miptex(FILE * f, WAD3MipTex * m) {
-    size_t name_size = 16;
-    // ignore the null terminator
-    if (fread(&(m->name), sizeof(char), name_size - 1, f) < name_size - 1) {
-        fprintf(stderr, "Failed to read texture_name\n");
-        return 1;
+#include <stdio.h>
+
+#include "endian_utils.h"
+#include "file_utils.h"
+#include "ifi_errors.h"
+
+int new_wad3miptex_from_file(WAD3MipTex * m, FILE * f) {
+    if (m == NULL || f == NULL) { return IFI_ERROR_NULL_ARGS; }
+    if (read_fixed_string_from_file(f, m->name, MAX_TEXTURE_NAME)) {
+        return IFI_ERROR_READ;
     }
-    fseek(f, sizeof(char), SEEK_CUR);
-    m->name[15] = '\0';
-    if (fread(&(m->width), sizeof(uint32_t), 1, f) < 1) {
-        fprintf(stderr, "Failed to read width\n");
-        return 1;
+    if (read_u32le_from_file(f, &m->width)) { return IFI_ERROR_READ; }
+    if (read_u32le_from_file(f, &m->height)) { return IFI_ERROR_READ; }
+    for (size_t i = 0; i < MAX_OFFSETS; i += 1) {
+        if (read_u32le_from_file(f, &m->offsets[i])) {
+            return IFI_ERROR_READ;
+        }
     }
-    if (fread(&(m->height), sizeof(uint32_t), 1, f) < 1) {
-        fprintf(stderr, "Failed to read height\n");
-        return 1;
-    }
-    size_t offsets_size = 4;
-    if (fread(m->offsets, sizeof(uint32_t), offsets_size, f) < offsets_size) {
-        fprintf(stderr, "Failed to read offsets\n");
-        return 1;
-    }
-    return 0;
+    return IFI_OK;
 }
 
-void print_wad3miptex(WAD3MipTex * m) {
-    printf("\ntexture_name: %s\n", m->name);
-    printf("width: %d\n", m->width);
-    printf("height: %d\n", m->height);
-    for (size_t i = 0; i < 4; i += 1) {
-        printf("offset[%zu]: %d\n", i, m->offsets[i]);
+int print_wad3miptex(const WAD3MipTex * m) {
+    if (m == NULL) { return IFI_ERROR_NULL_ARGS; }
+    int len = snprintf(NULL, 0, "\nname: %.16s\nwidth: %d\nheight: %d\n",
+        m->name, m->width, m->height);
+    if (len < 0) { return IFI_ERROR_ENCODING; }
+    size_t total_len = (size_t)len;
+    for (size_t i = 0; i < MAX_OFFSETS; i += 1) {
+        len = snprintf(NULL, 0, "offset[%zu]: %d\n", i, m->offsets[i]);
+        if (len < 0) { return IFI_ERROR_ENCODING; }
+        total_len += len;
     }
+    char * buffer = (char *)malloc(total_len + 1);
+    if (buffer == NULL) { return IFI_ERROR_MEMORY; }
+    char * ptr = buffer;
+    ptr += sprintf(ptr, "\nname: %.16s\nwidth: %d\nheight: %d\n",
+        m->name, m->width, m->height);
+    for (size_t i = 0; i < MAX_OFFSETS; i += 1) {
+        ptr += sprintf(ptr, "offset[%zu]: %d\n", i, m->offsets[i]);
+    }
+    printf("%s", buffer);
+    free(buffer);
+    return IFI_OK;
 }
 
 int new_wad3miptexbuffers(FILE * f, WAD3MipTex * m, WAD3MipTexBuffers * b, int32_t entry_offset) {
@@ -59,13 +68,13 @@ int new_wad3miptexbuffers(FILE * f, WAD3MipTex * m, WAD3MipTexBuffers * b, int32
     return 0;
 }
 
-int new_alloc_wad3miptexbuffers(
+int new_alloc_wad3miptexbuffers_from_file(
+    WAD3MipTexBuffers * b,
     FILE * f,
     WAD3MipTex * m,
-    WAD3MipTexBuffers * b,
     int32_t entry_offset
 ) {
-    if (f == NULL || m == NULL || b == NULL) {
+    if (b == NULL || f == NULL || m == NULL) {
         return 1;
     }
 
@@ -88,47 +97,49 @@ int new_alloc_wad3miptexbuffers(
     b->mipmap_zero = (uint8_t *)malloc(sizeof(uint8_t) * size_zero);
     if (b->mipmap_zero == NULL) {
         fprintf(stderr, "Failed to allocate mipmap_zero.\n");
-        // No need to free anything, all of the buffers point to null
-        return 1;
+        goto error_memory;
     }
     b->mipmap_zero_size = size_zero;
 
     b->mipmap_one = (uint8_t *)malloc(sizeof(uint8_t) * size_one);
     if (b->mipmap_one == NULL) {
         fprintf(stderr, "Failed to allocate mipmap_one.\n");
-        free_alloc_wad3miptexbuffers(b);
-        return 1;
+        goto error_memory;
     }
     b->mipmap_one_size = size_one;
 
     b->mipmap_two = (uint8_t *)malloc(sizeof(uint8_t) * size_two);
     if (b->mipmap_two == NULL) {
         fprintf(stderr, "Failed to allocate mipmap_two.\n");
-        free_alloc_wad3miptexbuffers(b);
-        return 1;
+        goto error_memory;
     }
     b->mipmap_two_size = size_two;
 
     b->mipmap_three = (uint8_t *)malloc(sizeof(uint8_t) * size_three);
     if (b->mipmap_three == NULL) {
         fprintf(stderr, "Failed to allocate mipmap_three.\n");
-        free_alloc_wad3miptexbuffers(b);
-        return 1;
+        goto error_memory;
     }
     b->mipmap_three_size = size_three;
 
-    if (new_wad3miptexbuffers(f, m, b, entry_offset) != 0) {
+    int result = new_wad3miptexbuffers(f, m, b, entry_offset);
+    if (result != IFI_OK) {
         fprintf(stderr, "Failed to fill buffers with data.\n");
-        free_alloc_wad3miptexbuffers(b);
-        return 1;
+        goto error_cleanup;
     }
 
-    return 0;
+    return IFI_OK;
+
+error_memory:
+    result = IFI_ERROR_MEMORY;
+error_cleanup:
+    free_alloc_wad3miptexbuffers(b);
+    return result;
 }
 
 int free_alloc_wad3miptexbuffers(WAD3MipTexBuffers * b) {
     if (b == NULL) {
-        return 0;
+        return IFI_ERROR_NULL_ARGS;
     }
 
     free(b->mipmap_zero);
@@ -147,7 +158,7 @@ int free_alloc_wad3miptexbuffers(WAD3MipTexBuffers * b) {
     b->mipmap_three = NULL;
     b->mipmap_three_size = 0;
 
-    return 0;
+    return IFI_OK;
 }
 
 int new_wad3miptexbuf(FILE * f, size_t mipmap_size, uint8_t * mipmap_ptr, uint32_t offset, int32_t entry_offset) {
@@ -166,87 +177,113 @@ int new_wad3miptexbuf(FILE * f, size_t mipmap_size, uint8_t * mipmap_ptr, uint32
 }
 
 
-int new_alloc_WAD3MipTexPaletteColorData_from_file(
+int new_alloc_wad3miptexpalettecolordata_from_file(
     WAD3MipTexPaletteColorData * c,
     FILE * f
 ) {
     if (c == NULL || f == NULL) {
-        fprintf(stderr, "Arguments need to not be NULL.\n");
-        return 1;
+        fprintf(stderr, "Arguments cannot be NULL.\n");
+        return IFI_ERROR_NULL_ARGS;
     }
+    int result = IFI_OK;
+
     c->palette_size = 0;
     c->rgb_data = NULL;
-    if (fread(&(c->palette_size), sizeof(uint16_t), 1, f) < 1) {
-        fprintf(stderr, "Failed to read palette_size\n");
-        return 1;
+
+    if (read_u16le_from_file(f, &c->palette_size)) {
+        fprintf(stderr, "Failed to read palette size.\n");
+        result = IFI_ERROR_READ;
+        goto error_cleanup;
     }
     if (c->palette_size == 0) {
-        fprintf(stderr, "Palette size in file is invalid.\n");
-        return 1;
+        fprintf(stderr, "Palette size is invalid (0).\n");
+        result = IFI_ERROR_INVALID;
+        goto error_cleanup;
     }
     size_t rgb_data_size = c->palette_size * 3;
     c->rgb_data = (uint8_t *)malloc(sizeof(uint8_t) * rgb_data_size);
     if (c->rgb_data == NULL) {
         fprintf(stderr, "Failed to allocate rgb data.\n");
-        free_WAD3MipTexPaletteColorData(c);
-        return 1;
+        result = IFI_ERROR_MEMORY;
+        goto error_cleanup;
     }
-    if (fread(c->rgb_data, sizeof(uint8_t), rgb_data_size, f) < rgb_data_size) {
-        fprintf(stderr, "Failed to read data for rgb_data.\n");
-        free_WAD3MipTexPaletteColorData(c);
-        return 1;
+    if (fread(c->rgb_data, sizeof(uint8_t), rgb_data_size, f) != rgb_data_size) {
+        fprintf(stderr, "Failed to read palette data.\n");
+        result = IFI_ERROR_READ;
+        goto error_cleanup;
     }
-    return 0;
+    return result;
+    
+error_cleanup:
+    free_wad3miptexpalettecolordata(c);
+    return result;
 }
 
-int free_WAD3MipTexPaletteColorData(WAD3MipTexPaletteColorData * c) {
+int free_wad3miptexpalettecolordata(WAD3MipTexPaletteColorData * c) {
     if (c == NULL) {
-        return 0;
+        return IFI_ERROR_NULL_ARGS;
     }
 
     free(c->rgb_data);
     c->palette_size = 0;
     c->rgb_data = NULL;
 
-    return 0;
+    return IFI_OK;
 }
 
 // doesn't work
-int new_wad3miptexpalettecolordata(FILE * f, WAD3MipTexPaletteColorData * c) {
-    if (fread(&(c->palette_size), sizeof(uint16_t), 1, f) < 1) {
-        fprintf(stderr, "Failed to read palette_size\n");
-        return 1;
-    }
-    size_t rgb_data_size = c->palette_size * 3;
-    if (fread(c->rgb_data, sizeof(uint8_t), rgb_data_size, f) < rgb_data_size) {
-        fprintf(stderr, "Failed to read rgb_data\n");
-        return 1;
-    }
-    return 0;
-}
+// int new_wad3miptexpalettecolordata(FILE * f, WAD3MipTexPaletteColorData * c) {
+//     if (fread(&(c->palette_size), sizeof(uint16_t), 1, f) < 1) {
+//         fprintf(stderr, "Failed to read palette_size\n");
+//         return 1;
+//     }
+//     size_t rgb_data_size = c->palette_size * 3;
+//     if (fread(c->rgb_data, sizeof(uint8_t), rgb_data_size, f) < rgb_data_size) {
+//         fprintf(stderr, "Failed to read rgb_data\n");
+//         return 1;
+//     }
+//     return 0;
+// }
 
-int set_wad3miptexpalettecolordata_palette_size(FILE * f, WAD3MipTexPaletteColorData * c) {
-    if (fread(&(c->palette_size), sizeof(uint16_t), 1, f) < 1) {
-        fprintf(stderr, "Failed to read palette_size\n");
-        return 1;
-    }
-    return 0;
-}
+// int set_wad3miptexpalettecolordata_palette_size(FILE * f, WAD3MipTexPaletteColorData * c) {
+//     if (fread(&(c->palette_size), sizeof(uint16_t), 1, f) < 1) {
+//         fprintf(stderr, "Failed to read palette_size\n");
+//         return 1;
+//     }
+//     return 0;
+// }
 
-int set_wad3miptexpalettecolordata_rgb_data(FILE * f, WAD3MipTexPaletteColorData * c) {
-    size_t rgb_data_size = c->palette_size * 3;
-    if (fread(c->rgb_data, sizeof(uint8_t), rgb_data_size, f) < rgb_data_size) {
-        fprintf(stderr, "Failed to read rgb_data\n");
-        return 1;
-    }
-    return 0;
-}
+// int set_wad3miptexpalettecolordata_rgb_data(FILE * f, WAD3MipTexPaletteColorData * c) {
+//     size_t rgb_data_size = c->palette_size * 3;
+//     if (fread(c->rgb_data, sizeof(uint8_t), rgb_data_size, f) < rgb_data_size) {
+//         fprintf(stderr, "Failed to read rgb_data\n");
+//         return 1;
+//     }
+//     return 0;
+// }
 
-void print_wad3miptexpalettecolordata(WAD3MipTexPaletteColorData * c) {
-    printf("palette_size: %d\n", c->palette_size);
-    const size_t rgb_data_size = c->palette_size * 3;
-    printf("rgb_data_size: %zu\n", rgb_data_size);
-    for (size_t i = 0; i < rgb_data_size; i += 3) {
-        printf("%d %d %d\n", c->rgb_data[i + 0], c->rgb_data[i + 1], c->rgb_data[i + 2]);
+int print_wad3miptexpalettecolordata(const WAD3MipTexPaletteColorData * c) {
+    if (c == NULL) { return IFI_ERROR_NULL_ARGS; }
+    int len = snprintf(NULL, 0, "\npalette_size: %d\nrgb_data_size: %d\n",
+        c->palette_size, c->palette_size * 3);
+    if (len < 0) { return IFI_ERROR_ENCODING; }
+    size_t total_len = (size_t)len;
+    for (size_t i = 0; i < c->palette_size * 3; i += 1) {
+        len = snprintf(NULL, 0, "%d %d %d\n",
+            c->rgb_data[i + 0], c->rgb_data[i + 1], c->rgb_data[i + 2]);
+        if (len < 0) { return IFI_ERROR_ENCODING; }
+        total_len += len;
     }
+    char * buffer = (char *)malloc(total_len + 1);
+    if (buffer == NULL) { return IFI_ERROR_MEMORY; }
+    char * ptr = buffer;
+    ptr += sprintf(ptr, "\npalette_size: %d\nrgb_data_size: %d\n",
+        c->palette_size, c->palette_size * 3);
+    for (size_t i = 0; i < c->palette_size * 3; i += 1) {
+        ptr += sprintf(ptr, "%d %d %d\n",
+            c->rgb_data[i + 0], c->rgb_data[i + 1], c->rgb_data[i + 2]);
+    }
+    printf("%s", buffer);
+    free(buffer);
+    return IFI_OK;
 }
