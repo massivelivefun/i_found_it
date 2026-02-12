@@ -63,6 +63,16 @@ static inline int read_i8_from_file(FILE * f, int8_t * val) {
     return 0;
 }
 
+static inline int read_u8_from_file(FILE * f, uint8_t * val) {
+    if (f == NULL || val == NULL) {
+        return 1;
+    }
+    if (fread(val, sizeof(uint8_t), 1, f) != 1) {
+        return 1;
+    }
+    return 0;
+}
+
 // Use this if bool is defined as char
 // static inline int read_bool8_from_file(FILE * f, bool * b) {
 //     if (f == NULL || b == NULL) {
