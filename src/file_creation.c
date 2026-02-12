@@ -1,5 +1,7 @@
 #include "file_creation.h"
 
+#include "ifi_errors.h"
+
 // CONTRACT: Valid arguments need to be null-terminated strings.
 // @param char * texture_name_suffixes - CANNOT be passed in with NULL
 // 
@@ -165,11 +167,13 @@ int create_texture(
     uint32_t number_of_dirs,
     bool classic
 ) {
+    int status = IFI_OK;
     uint32_t number;
     int result = handle_file_entry_select(&number, number_of_dirs);
     if (result != 0) {
         fprintf(stderr, "Failed to parse selection.\n");
-        return 1;
+        status = result;
+        goto return_from_func;
     }
 
     int32_t entry_offset = directory_entries[number - 1].entry_offset;
@@ -181,106 +185,74 @@ int create_texture(
     fseek(f, entry_offset, SEEK_SET);
 
     WAD3MipTex m;
-    if (new_wad3miptex(f, &m) != 0) {
+    if (new_wad3miptex_from_file(&m, f) != 0) {
         fprintf(stderr, "Failed to read mipmap texture: %s\n",
             input_file_path);
-        fclose(f);
-        return 1;
+        status = IFI_ERROR_INVALID;
+        goto return_from_func;
     }
     // print_wad3miptex(&m);
 
     WAD3MipTexBuffers b;
-    // b.mipmap_zero_size = m.width * m.height;
-    // b.mipmap_one_size = (m.width / 2) * (m.height / 2);
-    // b.mipmap_two_size = (m.width / 4) * (m.height / 4);
-    // b.mipmap_three_size = (m.width / 8) * (m.height / 8);
-    // uint8_t mipmap_zero_indices[b.mipmap_zero_size];
-    // uint8_t mipmap_one_indices[b.mipmap_one_size];
-    // uint8_t mipmap_two_indices[b.mipmap_two_size];
-    // uint8_t mipmap_three_indices[b.mipmap_three_size];
-    // b.mipmap_zero = mipmap_zero_indices;
-    // b.mipmap_one = mipmap_one_indices;
-    // b.mipmap_two = mipmap_two_indices;
-    // b.mipmap_three = mipmap_three_indices;
-    // if (new_wad3miptexbuffers(f, &m, &b, entry_offset)) {
-    //     fprintf(stderr, "Failed to read from file into mipmap buffers: %s\n",
-    //         input_file_path);
-    //     fclose(f);
-    //     return 1;
-    // }
-    if (new_alloc_wad3miptexbuffers(f, &m, &b, entry_offset)) {
+    if (new_alloc_wad3miptexbuffers_from_file(&b, f, &m, entry_offset)) {
         fprintf(stderr, "Failed to read from file into mipmap buffers: %s\n",
             input_file_path);
-        free_alloc_wad3miptexbuffers(&b);
-        fclose(f);
-        return 1;
+        // miptexbuffers were cleanedup if constructor fails
+        status = IFI_ERROR_INVALID;
+        goto return_from_func;
     }
 
     int32_t palette_pos = entry_offset + m.offsets[3] + b.mipmap_three_size;
     fseek(f, palette_pos, SEEK_SET);
 
     WAD3MipTexPaletteColorData c;
-    if (set_wad3miptexpalettecolordata_palette_size(f, &c)) {
-        fprintf(stderr, "Failed to read palette_size\n");
-        free_alloc_wad3miptexbuffers(&b);
-        return 1;
+    if (new_alloc_wad3miptexpalettecolordata_from_file(&c, f) != IFI_OK) {
+        fprintf(stderr, "Failed to construct palette color data.\n");
+        // palettecolordata was cleaned up if constructor failed
+        status = IFI_ERROR_INVALID;
+        goto cleanup_miptexbuffers;
     }
-    uint8_t rgb_data[c.palette_size * 3];
-    c.rgb_data = rgb_data;
-    if (set_wad3miptexpalettecolordata_rgb_data(f, &c)) {
-        fprintf(stderr, "Failed to read rgb_data\n");
-        free_alloc_wad3miptexbuffers(&b);
-        return 1;
-    }
-    // print_wad3miptexpalettecolordata(&c);
 
     const char * mipmap_suffixes[] = { "_mm0", "_mm1", "_mm2", "_mm3" };
     size_t mipmap_paths_count = 4;
-    char * paths[mipmap_paths_count];
+    char * paths[4];
     if (create_multi_alloc_output_file_paths(
         paths, output_path, m.name,
         mipmap_suffixes, ".ppm", mipmap_paths_count
     )) {
         fprintf(stderr, "Failed to create paths.\n");
-        free_alloc_wad3miptexbuffers(&b);
-        // the paths were cleaned up if this fucntion failed
-        return 1;
+        // the paths were cleaned up if constructor failed
+        status = IFI_ERROR_INVALID;
+        goto cleanup_palettecolordata;
     }
-    for (size_t i = 0; i < mipmap_paths_count - 1; i += 1) {
-        printf("%s\n", paths[i]);
-    }
-    printf("%s", paths[mipmap_paths_count - 1]);
 
     if (classic) {
         int classic_result = classic_func(paths, output_path, &c, &b, &m);
         if (classic_result != 0) {
-            fprintf(stderr, "classic failed.\n");
-            for (size_t i = 0; i < mipmap_paths_count; i += 1) {
-                free(paths[i]);
-                paths[i] = NULL;
-            }
-            free_alloc_wad3miptexbuffers(&b);
-            return 1;
+            fprintf(stderr, "Classic failed.\n");
+            status = IFI_ERROR_INVALID;
+            goto cleanup_paths;
         }
     } else {
         int modern_result = modern_func(paths, output_path, &c, &b, &m);
         if (modern_result != 0) {
-            fprintf(stderr, "modern failed.\n");
-            for (size_t i = 0; i < mipmap_paths_count; i += 1) {
-                free(paths[i]);
-                paths[i] = NULL;
-            }
-            free_alloc_wad3miptexbuffers(&b);
-            return 1;
+            fprintf(stderr, "Modern failed.\n");
+            status = IFI_ERROR_INVALID;
+            goto cleanup_paths;
         }
     }
 
+cleanup_paths:
     for (size_t i = 0; i < mipmap_paths_count; i += 1) {
         free(paths[i]);
         paths[i] = NULL;
     }
+cleanup_palettecolordata:
+    free_wad3miptexpalettecolordata(&c);
+cleanup_miptexbuffers:
     free_alloc_wad3miptexbuffers(&b);
-    return 0;
+return_from_func:
+    return status;
 }
 
 int modern_func(
