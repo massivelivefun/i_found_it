@@ -17,6 +17,6 @@ typedef struct {
 } WAD3DirectoryEntry;
 
 int new_wad3directoryentry_from_file(WAD3DirectoryEntry * d, FILE * f);
-void print_wad3directoryentry(const WAD3DirectoryEntry * d);
+int print_wad3directoryentry(const WAD3DirectoryEntry * d);
 
 #endif
