@@ -1,4 +1,4 @@
-#include "wad3image.h"
+#include "wad3/wad3image.h"
 
 int new_wad3image(
     WAD3MipTex * m,

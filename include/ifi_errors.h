@@ -11,6 +11,7 @@ typedef enum {
     IFI_ERROR_ENCODING,   // Encoding error, e.g. snprintf negative numbers
     IFI_ERROR_WRITE,      // Write error, e.g. printf negative numbers
     IFI_ERROR_INVALID,    // Invalid state of object being constructed
+    IFI_ERROR_SEEK,       // File pointer seek failed
 } ifi_error_t;
 
 #endif

@@ -1,19 +1,16 @@
 #ifndef FILE_CREATION_H
 #define FILE_CREATION_H
 
-// #include <errno.h>
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <stdint.h>
 #include <stdbool.h>
-// #include <string.h>
+#include <stdio.h>
+#include <stdint.h>
 
-#include "wad3miptex.h"
-#include "wad3directoryentry.h"
-#include "wad3header.h"
-#include "wad3pic.h"
+#include "wad3/miptex.h"
+#include "wad3/wad3directoryentry.h"
 
-#include "terminal.h"
+#define MIPMAP_COUNT 4
+
+extern const char * mipmap_suffixes[MIPMAP_COUNT];
 
 int create_multi_alloc_output_file_paths(
     char ** paths,
@@ -40,7 +37,7 @@ int create_picture(
     uint32_t number_of_dirs
 );
 
-int create_texture(
+int create_textures_from_miptex(
     FILE * f,
     const char * input_file_path,
     const char * output_path,

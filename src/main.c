@@ -5,10 +5,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "wad3miptex.h"
-#include "wad3directoryentry.h"
-#include "wad3header.h"
-#include "wad3pic.h"
+#include "wad3/wad3directoryentry.h"
+#include "wad3/wad3header.h"
+#include "wad3/wad3pic.h"
 
 #include "file_creation.h"
 #include "terminal.h"
@@ -38,7 +37,7 @@ int main(int argc, char ** argv) {
     }
 
     WAD3Header h;
-    if (new_wad3header_from_file(&h, f) != 0) {
+    if (init_wad3header_from_file(&h, f) != 0) {
         fprintf(stderr, "Failed to read header: %s\n", argv[1]);
         fclose(f);
         return 1;
@@ -58,7 +57,7 @@ int main(int argc, char ** argv) {
     WAD3DirectoryEntry directory_entries[h.num_dirs];
     for (size_t i = 0; i < h.num_dirs; i += 1) {
         WAD3DirectoryEntry d;
-        if (new_wad3directoryentry_from_file(&d, f) != 0) {
+        if (init_wad3directoryentry_from_file(&d, f) != 0) {
             fprintf(stderr, "Failed to read directory entry: %s\n", argv[1]);
             fclose(f);
             return 1;
@@ -82,7 +81,7 @@ int main(int argc, char ** argv) {
 
         switch (choice) {
             case '1': {
-                    int result = create_texture(
+                    int result = create_textures_from_miptex(
                         f, argv[1], argv[2], directory_entries, h.num_dirs,
                         classic);
                     if (result != 0) {

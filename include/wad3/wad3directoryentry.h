@@ -16,7 +16,10 @@ typedef struct {
     char texture_name[MAX_TEXTURE_NAME]; // Null-terminated texture name
 } WAD3DirectoryEntry;
 
-int new_wad3directoryentry_from_file(WAD3DirectoryEntry * d, FILE * f);
+WAD3DirectoryEntry * new_wad3directoryentry();
+int init_wad3directoryentry(WAD3DirectoryEntry * d);
+int init_wad3directoryentry_from_file(WAD3DirectoryEntry * d, FILE * f);
 int print_wad3directoryentry(const WAD3DirectoryEntry * d);
+void free_wad3directoryentry(WAD3DirectoryEntry * d);
 
 #endif

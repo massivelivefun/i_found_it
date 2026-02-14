@@ -1,4 +1,4 @@
-#include "wad3pic.h"
+#include "wad3/wad3pic.h"
 
 int new_wad3pic(FILE * f, WAD3Pic * p) {
 	if (f == NULL || p == NULL) {

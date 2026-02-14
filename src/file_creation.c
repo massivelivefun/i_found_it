@@ -1,6 +1,13 @@
 #include "file_creation.h"
 
+#include "wad3/wad3directoryentry.h"
+#include "wad3/wad3header.h"
+#include "wad3/wad3pic.h"
+
 #include "ifi_errors.h"
+#include "terminal.h"
+
+const char * mipmap_suffixes[] = { "_mm0", "_mm1", "_mm2", "_mm3" };
 
 // CONTRACT: Valid arguments need to be null-terminated strings.
 // @param char * texture_name_suffixes - CANNOT be passed in with NULL
@@ -159,7 +166,7 @@ int create_picture(
     return 0;
 }
 
-int create_texture(
+int create_textures_from_miptex(
     FILE * f,
     const char * input_file_path,
     const char * output_path,
@@ -168,6 +175,7 @@ int create_texture(
     bool classic
 ) {
     int status = IFI_OK;
+
     uint32_t number;
     int result = handle_file_entry_select(&number, number_of_dirs);
     if (result != 0) {
@@ -178,47 +186,51 @@ int create_texture(
 
     int32_t entry_offset = directory_entries[number - 1].entry_offset;
 
-    // seek to a specific file using magic numbers from the directory_entry
-    // values
+    // Seek to a specific file using offset from the directory_entry
+    // e.g. total seek to get to mipmap_one (i think, its about this)
     // size_t slider = 12 + (87852 * 7) + (49772 * 2);
-    // size_t slider = 2530548;
-    fseek(f, entry_offset, SEEK_SET);
+    if(fseek(f, entry_offset, SEEK_SET) != 0) {
+        fprintf(stderr, "Failed to seek to mipmap data.\n");
+        return IFI_ERROR_SEEK;
+    }
 
     WAD3MipTex m;
-    if (new_wad3miptex_from_file(&m, f) != 0) {
+    if (init_wad3miptex_from_file(&m, f) != 0) {
         fprintf(stderr, "Failed to read mipmap texture: %s\n",
             input_file_path);
         status = IFI_ERROR_INVALID;
         goto return_from_func;
     }
-    // print_wad3miptex(&m);
 
     WAD3MipTexBuffers b;
-    if (new_alloc_wad3miptexbuffers_from_file(&b, f, &m, entry_offset)) {
+    if (new_wad3miptexbuffers_from_file(&b, f, &m, entry_offset)) {
         fprintf(stderr, "Failed to read from file into mipmap buffers: %s\n",
             input_file_path);
-        // miptexbuffers were cleanedup if constructor fails
+        // MipTexBuffers were cleanedup if constructor fails
         status = IFI_ERROR_INVALID;
         goto return_from_func;
     }
 
+    // Seek to palette color data
     int32_t palette_pos = entry_offset + m.offsets[3] + b.mipmap_three_size;
-    fseek(f, palette_pos, SEEK_SET);
+    if(fseek(f, palette_pos, SEEK_SET) != 0) {
+        fprintf(stderr, "Failed to seek to mipmap data offset.\n");
+        return 1;
+    }
 
     WAD3MipTexPaletteColorData c;
-    if (new_alloc_wad3miptexpalettecolordata_from_file(&c, f) != IFI_OK) {
+    init_wad3miptexpalettecolordata(&c, NULL, 0);
+    if (init_owning_wad3miptexpalettecolordata_from_file(&c, f) != IFI_OK) {
         fprintf(stderr, "Failed to construct palette color data.\n");
         // palettecolordata was cleaned up if constructor failed
         status = IFI_ERROR_INVALID;
         goto cleanup_miptexbuffers;
     }
 
-    const char * mipmap_suffixes[] = { "_mm0", "_mm1", "_mm2", "_mm3" };
-    size_t mipmap_paths_count = 4;
-    char * paths[4];
+    char * paths[MIPMAP_COUNT];
     if (create_multi_alloc_output_file_paths(
         paths, output_path, m.name,
-        mipmap_suffixes, ".ppm", mipmap_paths_count
+        mipmap_suffixes, ".ppm", MIPMAP_COUNT
     )) {
         fprintf(stderr, "Failed to create paths.\n");
         // the paths were cleaned up if constructor failed
@@ -243,14 +255,16 @@ int create_texture(
     }
 
 cleanup_paths:
-    for (size_t i = 0; i < mipmap_paths_count; i += 1) {
-        free(paths[i]);
+    for (size_t i = 0; i < MIPMAP_COUNT; i += 1) {
+        if (paths[i] != NULL) {
+            free(paths[i]);
+        }
         paths[i] = NULL;
     }
 cleanup_palettecolordata:
-    free_wad3miptexpalettecolordata(&c);
+    free_owning_wad3miptexpalettecolordata(&c);
 cleanup_miptexbuffers:
-    free_alloc_wad3miptexbuffers(&b);
+    free_wad3miptexbuffers(&b);
 return_from_func:
     return status;
 }

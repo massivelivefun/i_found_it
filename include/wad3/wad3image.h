@@ -3,8 +3,8 @@
 
 #include <string.h>
 
-#include "wad3miptex.h"
-#include "wad3pic.h"
+#include "wad3/miptex/wad3miptex.h"
+#include "wad3/wad3pic.h"
 
 typedef struct {
     uint32_t width;

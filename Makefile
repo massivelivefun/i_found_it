@@ -1,7 +1,8 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -g -O3 -I$(SRC_DIR)
+CFLAGS = -Wall -Wextra -g -O3 -I$(INCLUDE)
 LDFLAGS = -lm
 
+INCLUDE = include
 SRC_DIR = src
 BUILD = build
 TARGET = ifi
@@ -9,9 +10,9 @@ TARGET = ifi
 TEST_DIR = test
 TEST_BIN = $(BUILD)/run_tests
 
-SRC = $(wildcard $(SRC_DIR)/*.c)
+SRC = $(shell find src -name '*.c')
 OBJ = $(patsubst $(SRC_DIR)/%.c, $(BUILD)/%.o, $(SRC))
-DEPS = $(wildcard $(SRC_DIR)/*.h)
+DEPS = $(shell find $(INCLUDE) -name '*.h')
 
 OBJ_NO_MAIN = $(filter-out $(BUILD)/main.o, $(OBJ))
 
