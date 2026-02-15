@@ -9,7 +9,7 @@
 #define MAX_OFFSETS 4
 
 typedef struct {
-    char name[MAX_TEXTURE_NAME];   // Name of the texture (same as dir_entry)
+    char name[MAX_TEXTURE_NAME];   // Name of the texture (same as dir_entry) this is null terminated
     uint32_t width;                // Width of image in pixels
     uint32_t height;               // Height of image in pixels
     uint32_t offsets[MAX_OFFSETS]; // Offsets to the 4 mipmap levels

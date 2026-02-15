@@ -12,7 +12,8 @@ const char * mipmap_suffixes[] = { "_mm0", "_mm1", "_mm2", "_mm3" };
 // CONTRACT: Valid arguments need to be null-terminated strings.
 // @param char * texture_name_suffixes - CANNOT be passed in with NULL
 // 
-int create_multi_alloc_output_file_paths(
+int create_multi_arena_output_file_paths(
+    Arena * arena,
     char ** paths,
     const char * output_path,
     const char * texture_name,
@@ -20,27 +21,21 @@ int create_multi_alloc_output_file_paths(
     const char * file_extension,
     size_t texture_count
 ) {
-    if (paths == NULL || output_path == NULL || texture_name == NULL ||
-        (texture_name_suffixes == NULL && texture_count > 0) ||
-        file_extension == NULL) {
-        fprintf(stderr, "Arguments to `create_multi_alloc_output_file_paths` "
-            "cannot be null. Returning to caller.\n");
-        return 1;
+    if (arena == NULL || paths == NULL || output_path == NULL ||
+            texture_name == NULL || (texture_name_suffixes == NULL &&
+                texture_count > 0) || file_extension == NULL) {
+        fprintf(stderr, "Arguments cannot be NULL.\n");
+        return IFI_ERROR_NULL_ARGS;
     }
 
     for (size_t i = 0; i < texture_count; i++) {
-        int result = create_single_alloc_output_file_path(
-            &paths[i], output_path, texture_name,
+        int result = create_single_arena_output_file_path(
+            arena, &paths[i], output_path, texture_name,
             texture_name_suffixes[i], file_extension
         );
 
-        if (result != 0) {
+        if (result != IFI_OK) {
             fprintf(stderr, "Error creating path for MipMap_%zu.\n", i);
-            // Free all of the valid allocations made, which is i
-            for (size_t j = 0; j < i; j++) {
-                free(paths[j]);
-                paths[j] = NULL;
-            }
             return 1;
         }
     }
@@ -49,36 +44,34 @@ int create_multi_alloc_output_file_paths(
 
 // CONTRACT: Valid arguments need to be null-terminated strings.
 // EXCEPTION: @param char * texture_name_suffix - Can be passed in with NULL
-int create_single_alloc_output_file_path(
+int create_single_arena_output_file_path(
+    Arena * arena,
     char ** path,
     const char * output_path,
     const char * texture_name,
     const char * texture_name_suffix,
     const char * file_extension
 ) {
-    if (path == NULL || output_path == NULL || texture_name == NULL ||
-        file_extension == NULL) {
-        fprintf(stderr, "Arguments to `create_single_alloc_output_file_path` "
-            "cannot be null. Returning to caller.\n");
-        return 1;
+    if (arena == NULL || path == NULL || output_path == NULL ||
+        texture_name == NULL || file_extension == NULL) {
+        fprintf(stderr, "Arguments cannot be NULL.\n");
+        return IFI_ERROR_NULL_ARGS;
     }
     // The suffix can be NULL so then it will have an empty length
-    size_t texture_name_suffix_len = (texture_name_suffix == NULL) ? 0 :
+    size_t suffix_len = (texture_name_suffix == NULL) ? 0 :
         strlen(texture_name_suffix);
     // Include null terminator into the length with the plus one
-    size_t output_file_name_len = strlen(output_path) + strlen(texture_name) +
-        texture_name_suffix_len + strlen(file_extension) + 1;
-    char * output_file_name =
-        (char *)malloc(sizeof(char) * output_file_name_len);
+    size_t len = strlen(output_path) + strlen(texture_name) + suffix_len +
+        strlen(file_extension) + 1;
+    char * output_file_name = (char *)arena_push(arena, len);
     if (output_file_name == NULL) {
-        fprintf(stderr, "Failed to allocate memory for output file path."
-            "Returning to caller.\n");
-        return 1;
+        fprintf(stderr, "Failed to allocate memory for output file path.\n");
+        return IFI_ERROR_MEMORY;
     }
-    snprintf(output_file_name, output_file_name_len, "%s%s%s%s",
-             output_path, texture_name,
-             (texture_name_suffix == NULL) ? "" : texture_name_suffix,
-             file_extension);
+    snprintf(
+        output_file_name, len, "%s%s%s%s", output_path, texture_name,
+        (texture_name_suffix == NULL) ? "" : texture_name_suffix,
+        file_extension);
     *path = output_file_name;
     return 0;
 }
@@ -121,18 +114,18 @@ int create_picture(
     // for (size_t i = 0; i < mipmap_paths_count; i += 1) {
     //     paths[i] = NULL;
     // }
-    if (create_single_alloc_output_file_path(
-        paths, output_path, directory_entries[number - 1].texture_name,
-        NULL, ".ppm"
-    )) {
-        // If this fails then the memory from paths was cleaned up in the call
-        fprintf(stderr, "Failed to create paths.\n");
-        free(pic.indices);
-        pic.indices = NULL;
-        free(pic.rgb_data);
-        pic.rgb_data = NULL;
-        return 1;
-    }
+    // if (create_single_alloc_output_file_path(
+    //     paths, output_path, directory_entries[number - 1].texture_name,
+    //     NULL, ".ppm"
+    // )) {
+    //     // If this fails then the memory from paths was cleaned up in the call
+    //     fprintf(stderr, "Failed to create paths.\n");
+    //     free(pic.indices);
+    //     pic.indices = NULL;
+    //     free(pic.rgb_data);
+    //     pic.rgb_data = NULL;
+    //     return 1;
+    // }
     // for (size_t i = 0; i < mipmap_paths_count - 1; i += 1) {
     //     printf("%s\n", paths[i]);
     // }
@@ -171,6 +164,7 @@ int create_textures_from_miptex(
     const uint8_t * file_data,
     const char * output_path,
     uint32_t entry_offset,
+    char ** paths,
     bool classic
 ) {
     int status = IFI_OK;
@@ -187,16 +181,6 @@ int create_textures_from_miptex(
     WAD3MipTexPaletteColorData c;
     init_wad3miptexpalettecolordata_from_data(&c, palette_start);
 
-    char * paths[MIPMAP_COUNT];
-    if (create_multi_alloc_output_file_paths(
-        paths, output_path, m.name,
-        mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK
-    ) {
-        fprintf(stderr, "Failed to create paths.\n");
-        // The paths were cleaned up if constructor failed
-        return IFI_ERROR_INVALID;
-    }
-
     if (classic) {
         if (classic_func(paths, output_path, &c, &b, &m) != IFI_OK) {
             fprintf(stderr, "Classic failed.\n");
@@ -207,13 +191,6 @@ int create_textures_from_miptex(
             fprintf(stderr, "Modern failed.\n");
             status = IFI_ERROR_INVALID;
         }
-    }
-
-    for (size_t i = 0; i < MIPMAP_COUNT; i += 1) {
-        if (paths[i] != NULL) {
-            free(paths[i]);
-        }
-        paths[i] = NULL;
     }
 
     return status;

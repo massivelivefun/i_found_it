@@ -130,13 +130,25 @@ int main(int argc, char ** argv) {
 
                 size_t temp_memory_mark = arena_save(&wad_arena);
 
+                char * paths[MIPMAP_COUNT];
+                if (create_multi_arena_output_file_paths(
+                    &wad_arena, paths, output_path, texture_name,
+                    mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK
+                ) {
+                    fprintf(stderr, "Failed to create paths.\n");
+                    arena_restore(&wad_arena, temp_memory_mark);
+                    // The paths were cleaned up if constructor failed
+                    break;
+                }
+
                 if (create_textures_from_miptex(
                     &wad_arena, wad_file.data, output_path,
-                    entry_offset, classic) != IFI_OK) {
+                    entry_offset, paths, classic) != IFI_OK) {
                     fprintf(stderr, "Error creating the textures.\n");
                 }
 
                 arena_restore(&wad_arena, temp_memory_mark);
+
                 break;
             case 2:
                 for (size_t i = 0; i < h.num_dirs; i += 1) {

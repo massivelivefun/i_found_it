@@ -12,7 +12,8 @@
 
 extern const char * mipmap_suffixes[MIPMAP_COUNT];
 
-int create_multi_alloc_output_file_paths(
+int create_multi_arena_output_file_paths(
+    Arena * arena,
     char ** paths,
     const char * output_path,
     const char * texture_name,
@@ -21,7 +22,8 @@ int create_multi_alloc_output_file_paths(
     size_t texture_count
 );
 
-int create_single_alloc_output_file_path(
+int create_single_arena_output_file_path(
+    Arena * arena,
     char ** path,
     const char * output_path,
     const char * texture_name,
@@ -42,6 +44,7 @@ int create_textures_from_miptex(
     const uint8_t * file_data,
     const char * output_path,
     uint32_t entry_offset,
+    char ** paths,
     bool classic
 );
 

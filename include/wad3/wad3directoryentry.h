@@ -18,7 +18,7 @@ typedef struct {
 } WAD3DirectoryEntry;
 
 int init_wad3directoryentry_from_data(
-    WAD3DirectoryEntry * d, const int * entry_data
+    WAD3DirectoryEntry * d, const uint8_t * entry_data
 );
 WAD3DirectoryEntry * parse_directories_from_data(
     Arena * a, const uint8_t * file_data, uint32_t dir_offset, uint32_t num_dirs

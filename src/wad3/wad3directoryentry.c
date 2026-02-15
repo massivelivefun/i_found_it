@@ -8,7 +8,7 @@
 #include "ifi_errors.h"
 
 int init_wad3directoryentry_from_data(
-	WAD3DirectoryEntry * d, const int * entry_data
+	WAD3DirectoryEntry * d, const uint8_t * entry_data
 ) {
 	if (d == NULL || entry_data == NULL) { return IFI_ERROR_NULL_ARGS; }
 	d->entry_offset = unsafe_read_u32le_from_ptr(entry_data + 0);
@@ -32,8 +32,9 @@ WAD3DirectoryEntry * parse_directories_from_data(
     if (entries == NULL) { return NULL; }
     const uint8_t * dir_start = file_data + dir_offset;
     for (size_t i = 0; i < num_dirs; i++) {
+    	const size_t size_of_dir_entry_in_file_in_bytes = 32;
     	const uint8_t * curr_entry_data = dir_start +
-    		(i * sizeof(WAD3DirectoryEntry));
+    		(i * size_of_dir_entry_in_file_in_bytes);
         init_wad3directoryentry_from_data(&entries[i], curr_entry_data);
     }
     return entries;
