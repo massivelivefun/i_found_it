@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,110 +10,155 @@
 #include "wad3/wad3header.h"
 #include "wad3/wad3pic.h"
 
+#include "utils.h"
 #include "file_creation.h"
+#include "file_mapper.h"
 #include "terminal.h"
 
 int main(int argc, char ** argv) {
+    int result = EXIT_SUCCESS;
+    WAD3DirectoryEntry * directory_entries = NULL;
+    char * program_name = argv[0];
+
     if (argc != 3) {
-        fprintf(stderr, "Three args are needed: ./ifi <path/input_file.wad> "
-            "<output_path>\n");
-        return 1;
+        fprintf(stderr, "Three args are needed: %s <path/input_file.wad> "
+            "<output_path>\n", program_name);
+        result = EXIT_FAILURE;
+        goto return_from_main;
     }
 
-    if (make_dir(argv[2]) == 0) {
-        printf("Directory created successfully: %s\n", argv[2]);
-    } else {
-        if (errno == EEXIST) {
-            // printf("Directory already exists: %s (leaving it alone)\n", argv[2]);
-        } else {
-            perror("Error creating directory\n");
-            return 1;
-        }
+    char * input_file_path = argv[1];
+    char * output_path = argv[2];
+
+    MappedFile wad_file = {0};
+    if (!map_file(&wad_file, input_file_path)) {
+        result = EXIT_FAILURE;
+        goto return_from_main;
     }
 
-    FILE * f = fopen(argv[1], "rb");
-    if (f == NULL) {
-        fprintf(stderr, "Cannot read file, doesn't exist: %s\n", argv[1]);
-        return 1;
+    // Pass the pure byte data directly to your validator
+    if (!validate_wad_structure(wad_file.data, wad_file.size)) {
+        fprintf(stderr, "Invalid WAD structure!\n");
+        result = EXIT_FAILURE;
+        goto unmap_file;
     }
 
-    WAD3Header h;
-    if (init_wad3header_from_file(&h, f) != 0) {
-        fprintf(stderr, "Failed to read header: %s\n", argv[1]);
-        fclose(f);
-        return 1;
-    }
-    // print_wad3header(&h);
-
-    int validation_result = validate_magic(h.magic);
-    if (validation_result != 0) {
-        fprintf(stderr, "Unsupported Magic.\n");
-        fclose(f);
-        return 1;
+    Arena wad_arena = {0};
+    // Allocate 10 megabytes of information
+    if (!arena_init(&wad_arena, 1024 * 1024 * 10)) {
+        fprintf(stderr, "Fatal: Could not allocate memory arena.\n");
+        result = EXIT_FAILURE;
+        goto unmap_file;
     }
 
-    // navigate file to start of directory entry from the start of the file
-    fseek(f, h.dir_offset, SEEK_SET);
-
-    WAD3DirectoryEntry directory_entries[h.num_dirs];
-    for (size_t i = 0; i < h.num_dirs; i += 1) {
-        WAD3DirectoryEntry d;
-        if (init_wad3directoryentry_from_file(&d, f) != 0) {
-            fprintf(stderr, "Failed to read directory entry: %s\n", argv[1]);
-            fclose(f);
-            return 1;
-        }
-        directory_entries[i] = d;
+    WAD3Header h = {0};
+    if (init_wad3header_from_data(&h, wad_file.data) != IFI_OK) {
+        fprintf(stderr, "Failed to read wad3 header: %s\n",
+            input_file_path);
+        result = EXIT_FAILURE;
+        goto cleanup;
+    }
+    if (validate_wad3header_magic(&h) != IFI_OK) {
+        result = EXIT_FAILURE;
+        goto cleanup;
     }
 
-    char choice;
+    directory_entries = parse_directories_from_data(
+        &wad_arena, wad_file.data, h.dir_offset, h.num_dirs
+    );
+    if (directory_entries == NULL) {
+        fprintf(stderr, "Fatal: Arena out of memory while parsing "
+            "directories.\n");
+        result = EXIT_FAILURE;
+        goto cleanup;
+    }
+
     bool classic = false;
-
     char menu_buffer[32];
+    bool quit = false;
 
     do {
         print_menu();
 
         if (fgets(menu_buffer, sizeof(menu_buffer), stdin) == NULL) {
-            break; 
+            break;
         }
 
-        choice = menu_buffer[0];
+        menu_buffer[strcspn(menu_buffer, "\n")] = 0;
+
+        for (size_t i = 0; menu_buffer[i] != '\0'; i += 1) {
+            menu_buffer[i] = (char)tolower((unsigned char)menu_buffer[i]);
+        }
+
+        if (strcmp(menu_buffer, "q") == 0 ||
+            strcmp(menu_buffer, "quit") == 0) {
+            printf("Quitting program.\n");
+            quit = true;
+            break;
+        }
+
+        char * endptr;
+        int choice = (int)strtol(menu_buffer, &endptr, 10);
+
+        if (endptr == menu_buffer || *endptr != '\0') {
+            choice = -1;
+        }
 
         switch (choice) {
-            case '1': {
-                    int result = create_textures_from_miptex(
-                        f, argv[1], argv[2], directory_entries, h.num_dirs,
-                        classic);
-                    if (result != 0) {
-                        fprintf(stderr, "Error creating the texture\n");
+            case 1:
+                if (make_dir(output_path) == IFI_OK) {
+                    printf("Directory created successfully: %s\n",
+                        output_path);
+                } else {
+                    if (errno != EEXIST) {
+                        perror("Error creating directory.\n");
+                        result = EXIT_FAILURE;
+                        goto cleanup;
                     }
-                    printf("\n");
-                    // clear_terminal();
                 }
+                uint32_t number = 0;
+                if (handle_file_entry_select(&number, h.num_dirs)
+                    != IFI_OK) {
+                    fprintf(stderr, "Failed to parse selection.\n");
+                    return IFI_ERROR_INVALID;
+                }
+
+                uint32_t entry_offset =
+                    directory_entries[number - 1].entry_offset;
+                const char * texture_name =
+                    directory_entries[number - 1].texture_name;
+
+                size_t temp_memory_mark = arena_save(&wad_arena);
+
+                if (create_textures_from_miptex(
+                    &wad_arena, wad_file.data, output_path,
+                    entry_offset, classic) != IFI_OK) {
+                    fprintf(stderr, "Error creating the textures.\n");
+                }
+
+                arena_restore(&wad_arena, temp_memory_mark);
                 break;
-            case '2':
+            case 2:
                 for (size_t i = 0; i < h.num_dirs; i += 1) {
                     printf("\n%zu", i + 1);
                     print_wad3directoryentry(&directory_entries[i]);
                 }
                 break;
-            case '3':
+            case 3:
                 classic = !classic;
                 printf("Classic mode is now set to: %s\n",
                     classic ? "true" : "false");
                 break;
-            case 'q':
-            case 'Q':
-                printf("Quitting program... see you later\n");
-                break;
             default:
-                printf("\n(!) Invalid input. Please type 1-2 or q.\n");
+                printf("\n(!) Invalid input. Please type 1-3, or q or quit.\n");
                 break;
         }
-    } while (choice != 'q' && choice != 'Q');
+    } while (quit == false);
 
-    fclose(f);
-
-    return 0;
+cleanup:
+    arena_free(&wad_arena);
+unmap_file:
+    unmap_file(&wad_file);
+return_from_main:
+    return result;
 }

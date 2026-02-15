@@ -19,10 +19,8 @@ typedef struct {
 // WAD3MipTex functions
 //
 
-WAD3MipTex * new_wad3miptex();
 int init_wad3miptex(WAD3MipTex * m);
-int init_wad3miptex_from_file(WAD3MipTex * m, FILE * f);
+int init_wad3miptex_from_data(WAD3MipTex * m, const uint8_t * data);
 int print_wad3miptex(const WAD3MipTex * m);
-void free_wad3miptex(WAD3MipTex * m);
 
 #endif

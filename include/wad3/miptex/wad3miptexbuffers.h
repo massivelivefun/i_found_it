@@ -14,22 +14,14 @@ typedef struct {
     uint8_t * mipmap_one;
     uint8_t * mipmap_two;
     uint8_t * mipmap_three;
-    size_t mipmap_zero_size;
-    size_t mipmap_one_size;
-    size_t mipmap_two_size;
-    size_t mipmap_three_size;
+    size_t mip0_size;
+    size_t mip1_size;
+    size_t mip2_size;
+    size_t mip3_size;
 } WAD3MipTexBuffers;
 
-//
-// WAD3MipTexBuffers functions
-//
-
-int new_wad3miptexbuffers(FILE * f, WAD3MipTex * m, WAD3MipTexBuffers * b,
-    int32_t entry_offset);
-int new_wad3miptexbuf(FILE * f, size_t mipmap_size, uint8_t * mipmap_ptr,
-    uint32_t offset, int32_t entry_offset);
-int new_wad3miptexbuffers_from_file(WAD3MipTexBuffers * b, FILE * f,
-    WAD3MipTex * m, int32_t entry_offset);
-int free_wad3miptexbuffers(WAD3MipTexBuffers * b);
+int init_wad3miptexbuffers_from_data(
+    WAD3MipTexBuffers * b, WAD3MipTex * m, const uint8_t * data
+);
 
 #endif

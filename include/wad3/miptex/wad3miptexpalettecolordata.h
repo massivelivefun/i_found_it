@@ -10,25 +10,10 @@ typedef struct {
     uint8_t * rgb_data;
 } WAD3MipTexPaletteColorData;
 
-//
-// WAD3MipTexPaletteColorData
-//
-
-WAD3MipTexPaletteColorData * new_wad3miptexpalettecolordata();
-int init_wad3miptexpalettecolordata(
+int init_wad3miptexpalettecolordata_from_data(
     WAD3MipTexPaletteColorData * c,
-    uint8_t * buffer,
-    uint16_t size
-);
-int init_owning_wad3miptexpalettecolordata(
-    WAD3MipTexPaletteColorData * c,
-    uint16_t size
-);
-int init_owning_wad3miptexpalettecolordata_from_file(
-    WAD3MipTexPaletteColorData * c,
-    FILE * f
+    const uint8_t * data
 );
 int print_wad3miptexpalettecolordata(const WAD3MipTexPaletteColorData * c);
-int free_owning_wad3miptexpalettecolordata(WAD3MipTexPaletteColorData * c);
 
 #endif

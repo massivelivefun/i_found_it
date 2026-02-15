@@ -167,105 +167,55 @@ int create_picture(
 }
 
 int create_textures_from_miptex(
-    FILE * f,
-    const char * input_file_path,
+    Arena * arena,
+    const uint8_t * file_data,
     const char * output_path,
-    WAD3DirectoryEntry * directory_entries,
-    uint32_t number_of_dirs,
+    uint32_t entry_offset,
     bool classic
 ) {
     int status = IFI_OK;
-
-    uint32_t number;
-    int result = handle_file_entry_select(&number, number_of_dirs);
-    if (result != 0) {
-        fprintf(stderr, "Failed to parse selection.\n");
-        status = result;
-        goto return_from_func;
-    }
-
-    int32_t entry_offset = directory_entries[number - 1].entry_offset;
-
-    // Seek to a specific file using offset from the directory_entry
-    // e.g. total seek to get to mipmap_one (i think, its about this)
-    // size_t slider = 12 + (87852 * 7) + (49772 * 2);
-    if(fseek(f, entry_offset, SEEK_SET) != 0) {
-        fprintf(stderr, "Failed to seek to mipmap data.\n");
-        return IFI_ERROR_SEEK;
-    }
+    const uint8_t * miptex_data = file_data + entry_offset;
 
     WAD3MipTex m;
-    if (init_wad3miptex_from_file(&m, f) != 0) {
-        fprintf(stderr, "Failed to read mipmap texture: %s\n",
-            input_file_path);
-        status = IFI_ERROR_INVALID;
-        goto return_from_func;
-    }
+    init_wad3miptex_from_data(&m, miptex_data);
 
     WAD3MipTexBuffers b;
-    if (new_wad3miptexbuffers_from_file(&b, f, &m, entry_offset)) {
-        fprintf(stderr, "Failed to read from file into mipmap buffers: %s\n",
-            input_file_path);
-        // MipTexBuffers were cleanedup if constructor fails
-        status = IFI_ERROR_INVALID;
-        goto return_from_func;
-    }
-
-    // Seek to palette color data
-    int32_t palette_pos = entry_offset + m.offsets[3] + b.mipmap_three_size;
-    if(fseek(f, palette_pos, SEEK_SET) != 0) {
-        fprintf(stderr, "Failed to seek to mipmap data offset.\n");
-        return 1;
-    }
+    init_wad3miptexbuffers_from_data(&b, &m, miptex_data);
+    
+    const uint8_t * palette_start = miptex_data + m.offsets[3] + b.mip3_size;
 
     WAD3MipTexPaletteColorData c;
-    init_wad3miptexpalettecolordata(&c, NULL, 0);
-    if (init_owning_wad3miptexpalettecolordata_from_file(&c, f) != IFI_OK) {
-        fprintf(stderr, "Failed to construct palette color data.\n");
-        // palettecolordata was cleaned up if constructor failed
-        status = IFI_ERROR_INVALID;
-        goto cleanup_miptexbuffers;
-    }
+    init_wad3miptexpalettecolordata_from_data(&c, palette_start);
 
     char * paths[MIPMAP_COUNT];
     if (create_multi_alloc_output_file_paths(
         paths, output_path, m.name,
-        mipmap_suffixes, ".ppm", MIPMAP_COUNT
-    )) {
+        mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK
+    ) {
         fprintf(stderr, "Failed to create paths.\n");
-        // the paths were cleaned up if constructor failed
-        status = IFI_ERROR_INVALID;
-        goto cleanup_palettecolordata;
+        // The paths were cleaned up if constructor failed
+        return IFI_ERROR_INVALID;
     }
 
     if (classic) {
-        int classic_result = classic_func(paths, output_path, &c, &b, &m);
-        if (classic_result != 0) {
+        if (classic_func(paths, output_path, &c, &b, &m) != IFI_OK) {
             fprintf(stderr, "Classic failed.\n");
             status = IFI_ERROR_INVALID;
-            goto cleanup_paths;
         }
     } else {
-        int modern_result = modern_func(paths, output_path, &c, &b, &m);
-        if (modern_result != 0) {
+        if (modern_func(paths, output_path, &c, &b, &m) != IFI_OK) {
             fprintf(stderr, "Modern failed.\n");
             status = IFI_ERROR_INVALID;
-            goto cleanup_paths;
         }
     }
 
-cleanup_paths:
     for (size_t i = 0; i < MIPMAP_COUNT; i += 1) {
         if (paths[i] != NULL) {
             free(paths[i]);
         }
         paths[i] = NULL;
     }
-cleanup_palettecolordata:
-    free_owning_wad3miptexpalettecolordata(&c);
-cleanup_miptexbuffers:
-    free_wad3miptexbuffers(&b);
-return_from_func:
+
     return status;
 }
 

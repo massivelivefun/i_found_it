@@ -68,6 +68,20 @@ static inline int read_u16le_from_file(FILE * f, uint16_t * result) {
     return 0;
 }
 
+// HOW DO I HANDLE FOR ALIGNMENT OF THE SYSTEM?
+static inline int read_u16le_from_ptr(const uint8_t * ptr, uint32_t * result) {
+    if (ptr == NULL || result == NULL) {
+        return 1;
+    }
+    *result = (uint16_t)ptr[0] | ((uint16_t)ptr[1] << 8);
+    return 0;
+}
+
+// DO NOT PASS IN NULL INTO THESE FUNCTIONS
+static inline uint16_t unsafe_read_u16le_from_ptr(const uint8_t * ptr) {
+    return (uint16_t)ptr[0] | ((uint16_t)ptr[1] << 8);
+}
+
 static inline int read_i16le_from_file(FILE * f, int16_t * result) {
     uint16_t temp;
     if (read_u16le_from_file(f, &temp) != 0) { return 1; }
@@ -99,6 +113,26 @@ static inline int read_u32le_from_file(FILE * f, uint32_t * result) {
     *result = (uint32_t)bytes[0]        | ((uint32_t)bytes[1] << 8)  |
              ((uint32_t)bytes[2] << 16) | ((uint32_t)bytes[3] << 24);
     return 0;
+}
+
+// HOW DO I HANDLE FOR ALIGNMENT OF THE SYSTEM?
+static inline int read_u32le_from_ptr(const uint8_t * ptr, uint32_t * result) {
+    if (ptr == NULL || result == NULL) {
+        return 1;
+    }
+    *result = (uint32_t)ptr[0]        | 
+             ((uint32_t)ptr[1] << 8)  | 
+             ((uint32_t)ptr[2] << 16) | 
+             ((uint32_t)ptr[3] << 24);
+    return 0;
+}
+
+// DO NOT PASS IN NULL INTO THESE FUNCTIONS
+static inline uint32_t unsafe_read_u32le_from_ptr(const uint8_t * ptr) {
+    return (uint32_t)ptr[0]        | 
+          ((uint32_t)ptr[1] << 8)  | 
+          ((uint32_t)ptr[2] << 16) | 
+          ((uint32_t)ptr[3] << 24);
 }
 
 static inline int read_i32le_from_file(FILE * f, int32_t * result) {

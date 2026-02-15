@@ -38,11 +38,10 @@ int create_picture(
 );
 
 int create_textures_from_miptex(
-    FILE * f,
-    const char * input_file_path,
+    Arena * arena,
+    const uint8_t * file_data,
     const char * output_path,
-    WAD3DirectoryEntry * directory_entries,
-    uint32_t number_of_dirs,
+    uint32_t entry_offset,
     bool classic
 );
 

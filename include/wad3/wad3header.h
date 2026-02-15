@@ -10,10 +10,8 @@ typedef struct {
 	uint32_t dir_offset;
 } WAD3Header;
 
-WAD3Header * new_wad3header();
-int init_wad3header(WAD3Header * h);
-int init_wad3header_from_file(WAD3Header * h, FILE * f);
+int init_wad3header_from_data(WAD3Header * h, const uint8_t * data);
 int print_wad3header(const WAD3Header * h);
-void free_wad3header(WAD3Header * h);
+int validate_wad3header_magic(const WAD3Header * h);
 
 #endif

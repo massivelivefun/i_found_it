@@ -1,5 +1,35 @@
 #include "terminal.h"
 
+bool validate_wad_structure(const uint8_t * file_data, size_t file_size) {
+    if (file_size < 12) { return false; }
+
+    uint32_t num_dirs = *(uint32_t *)(file_data + 4);
+    uint32_t dir_offset = *(uint32_t *)(file_data + 8);
+
+    size_t dir_end_byte = dir_offset + (num_dirs * 32);
+    if (dir_end_byte > file_size) {
+        return false;
+    }
+
+    // We now know it's safe to loop through the directories.
+    // Validate every single asset's bounds
+    for (size_t i = 0; i < num_dirs; i++) {
+        // Calculate where this specific directory entry starts
+        const uint8_t * entry_ptr = file_data + dir_offset + (i * 32);
+        
+        // Extract the offset and compressed size of the actual image data
+        uint32_t filepos = *(uint32_t *)(entry_ptr + 0);
+        uint32_t disksize = *(uint32_t *)(entry_ptr + 4);
+
+        // Does this image data reach past the end of the file?
+        if (filepos + disksize > file_size) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 int make_dir(char * path) {
     int result;
 #ifdef _WIN32
@@ -30,48 +60,6 @@ void print_menu() {
         "------------------------\n"
         "Enter selection: "
     );
-}
-
-int validate_magic(char * magic) {
-	char usable_magic[5];
-    strncpy(usable_magic, magic, 4);
-    // for (size_t i = 0; i < 4; i += 1) {
-    //     usable_magic[i] = h.magic[i];
-    // }
-    usable_magic[4] = '\0';
-
-    // Confirm the header and see what the magic is
-    if (strcmp(usable_magic, "WAD3") == 0) {
-        // Half Life 1, (Goldsrc) maybe?
-        // This is allowed
-        // printf("WAD3 is supported.\n");
-        return 0;
-    } else if (strcmp(usable_magic, "WAD2") == 0) {
-        // Quake
-        fprintf(stderr, "WAD2 not supported.\n");
-        return 1;
-    } else if (strcmp(usable_magic, "WADF") == 0) {
-        // Internal asset management
-        fprintf(stderr, "WADF not supported.\n");
-        return 1;
-    } else if (strcmp(usable_magic, "BSPX") == 0) {
-        // WAD file packed into an BSP file
-        fprintf(stderr, "BSPX not supported.\n");
-        return 1;
-    } else if (strcmp(usable_magic, "IWAD") == 0) {
-        // Original doom master file with all the original assets
-        // e.g. doom.wad, or doom2.wad
-        fprintf(stderr, "IWAD not supported.\n");
-        return 1;
-    } else if (strcmp(usable_magic, "PWAD") == 0) {
-        // Patch mods that overwrite the file 
-        fprintf(stderr, "PWAD not supported.\n");
-        return 1;
-    } else {
-        printf("Magic not recognized: %4s\n", usable_magic);
-        return 1;
-    }
-    return 0;
 }
 
 int handle_file_entry_select(uint32_t * number, uint32_t number_of_dirs) {
