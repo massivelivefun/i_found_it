@@ -175,19 +175,14 @@ int create_textures_from_miptex(
 
     WAD3MipTexBuffers b;
     init_wad3miptexbuffers_from_data(&b, &m, miptex_data);
-    
-    const uint8_t * palette_start = miptex_data + m.offsets[3] + b.mip3_size;
-
-    WAD3MipTexPaletteColorData c;
-    init_wad3miptexpalettecolordata_from_data(&c, palette_start);
 
     if (classic) {
-        if (classic_func(paths, output_path, &c, &b, &m) != IFI_OK) {
+        if (classic_func(paths, output_path, &b, &m) != IFI_OK) {
             fprintf(stderr, "Classic failed.\n");
             status = IFI_ERROR_INVALID;
         }
     } else {
-        if (modern_func(paths, output_path, &c, &b, &m) != IFI_OK) {
+        if (modern_func(paths, output_path, &b, &m) != IFI_OK) {
             fprintf(stderr, "Modern failed.\n");
             status = IFI_ERROR_INVALID;
         }
@@ -199,7 +194,6 @@ int create_textures_from_miptex(
 int modern_func(
     char ** paths,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 ) {
@@ -211,13 +205,13 @@ int modern_func(
         paths[0], output_path, m->width,
             m->height,
             b->mipmap_zero,
-            c->rgb_data);
+            b->rgb_data);
     if (mm_zero_result != 0) {
         fprintf(stderr, "Failed to create mipmap zero\n");
         return 1;
     }
     int mm_one_result = create_mipmap_one_modern(
-        paths[1], output_path, c, b, m, rgb_data_one);
+        paths[1], output_path, b, m, rgb_data_one);
     if (mm_one_result != 0) {
         fprintf(stderr, "Failed to create mipmap one\n");
         return 1;
@@ -240,28 +234,27 @@ int modern_func(
 int classic_func(
     char ** paths,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 ) {
     int mm_zero_result = create_mipmap_zero(
         paths[0], output_path, m->width,
-        m->height, b->mipmap_zero, c->rgb_data);
+        m->height, b->mipmap_zero, b->rgb_data);
     if (mm_zero_result != 0) {
         fprintf(stderr, "Failed to create mipmap zero\n");
         return 1;
     }
-    int mm_one_result = create_mipmap_one(paths[1], output_path, c, b, m);
+    int mm_one_result = create_mipmap_one(paths[1], output_path, b, m);
     if (mm_one_result != 0) {
         fprintf(stderr, "Failed to create mipmap one\n");
         return 1;
     }
-    int mm_two_result = create_mipmap_two(paths[2], output_path, c, b, m);
+    int mm_two_result = create_mipmap_two(paths[2], output_path, b, m);
     if (mm_two_result != 0) {
         fprintf(stderr, "Failed to create mipmap two\n");
         return 1;
     }
-    int mm_three_result = create_mipmap_three(paths[3], output_path, c, b, m);
+    int mm_three_result = create_mipmap_three(paths[3], output_path, b, m);
     if (mm_three_result != 0) {
         fprintf(stderr, "Failed to create mipmap three\n");
         return 1;
@@ -304,7 +297,6 @@ int create_mipmap_zero(
 int create_mipmap_one(
     const char * path,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 ) {
@@ -322,9 +314,9 @@ int create_mipmap_one(
     for (size_t y = 0; y < (m->height / 2); y += 1) {
         for (size_t x = 0; x < (m->width / 2); x += 1) {
             size_t idx = y * (m->width / 2) + x;
-            fputc(c->rgb_data[b->mipmap_one[idx] * 3 + 0], f);
-            fputc(c->rgb_data[b->mipmap_one[idx] * 3 + 1], f);
-            fputc(c->rgb_data[b->mipmap_one[idx] * 3 + 2], f);
+            fputc(b->rgb_data[b->mipmap_one[idx] * 3 + 0], f);
+            fputc(b->rgb_data[b->mipmap_one[idx] * 3 + 1], f);
+            fputc(b->rgb_data[b->mipmap_one[idx] * 3 + 2], f);
         }
     }
 
@@ -335,7 +327,6 @@ int create_mipmap_one(
 int create_mipmap_two(
     const char * path,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 ) {
@@ -353,9 +344,9 @@ int create_mipmap_two(
     for (size_t y = 0; y < (m->height / 4); y += 1) {
         for (size_t x = 0; x < (m->width / 4); x += 1) {
             size_t idx = y * (m->width / 4) + x;
-            fputc(c->rgb_data[b->mipmap_two[idx] * 3 + 0], f);
-            fputc(c->rgb_data[b->mipmap_two[idx] * 3 + 1], f);
-            fputc(c->rgb_data[b->mipmap_two[idx] * 3 + 2], f);
+            fputc(b->rgb_data[b->mipmap_two[idx] * 3 + 0], f);
+            fputc(b->rgb_data[b->mipmap_two[idx] * 3 + 1], f);
+            fputc(b->rgb_data[b->mipmap_two[idx] * 3 + 2], f);
         }
     }
 
@@ -366,7 +357,6 @@ int create_mipmap_two(
 int create_mipmap_three(
     const char * path,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 ) {
@@ -384,9 +374,9 @@ int create_mipmap_three(
     for (size_t y = 0; y < (m->height / 8); y += 1) {
         for (size_t x = 0; x < (m->width / 8); x += 1) {
             size_t idx = y * (m->width / 8) + x;
-            fputc(c->rgb_data[b->mipmap_three[idx] * 3 + 0], f);
-            fputc(c->rgb_data[b->mipmap_three[idx] * 3 + 1], f);
-            fputc(c->rgb_data[b->mipmap_three[idx] * 3 + 2], f);
+            fputc(b->rgb_data[b->mipmap_three[idx] * 3 + 0], f);
+            fputc(b->rgb_data[b->mipmap_three[idx] * 3 + 1], f);
+            fputc(b->rgb_data[b->mipmap_three[idx] * 3 + 2], f);
         }
     }
 
@@ -397,7 +387,6 @@ int create_mipmap_three(
 int create_mipmap_one_modern(
     const char * path,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m,
     uint8_t * rgb_data
@@ -424,20 +413,20 @@ int create_mipmap_one_modern(
             int idx3 = ((src_y + 1) * src_w + src_x);
             int idx4 = ((src_y + 1) * src_w + src_x + 1);
 
-            int sum_r = c->rgb_data[b->mipmap_zero[idx1] * 3 + 0] +
-                c->rgb_data[b->mipmap_zero[idx2] * 3 + 0] +
-                c->rgb_data[b->mipmap_zero[idx3] * 3 + 0] +
-                c->rgb_data[b->mipmap_zero[idx4] * 3 + 0];
+            int sum_r = b->rgb_data[b->mipmap_zero[idx1] * 3 + 0] +
+                b->rgb_data[b->mipmap_zero[idx2] * 3 + 0] +
+                b->rgb_data[b->mipmap_zero[idx3] * 3 + 0] +
+                b->rgb_data[b->mipmap_zero[idx4] * 3 + 0];
 
-            int sum_g = c->rgb_data[b->mipmap_zero[idx1] * 3 + 1] +
-                c->rgb_data[b->mipmap_zero[idx2] * 3 + 1] +
-                c->rgb_data[b->mipmap_zero[idx3] * 3 + 1] +
-                c->rgb_data[b->mipmap_zero[idx4] * 3 + 1];
+            int sum_g = b->rgb_data[b->mipmap_zero[idx1] * 3 + 1] +
+                b->rgb_data[b->mipmap_zero[idx2] * 3 + 1] +
+                b->rgb_data[b->mipmap_zero[idx3] * 3 + 1] +
+                b->rgb_data[b->mipmap_zero[idx4] * 3 + 1];
 
-            int sum_b = c->rgb_data[b->mipmap_zero[idx1] * 3 + 2] +
-                c->rgb_data[b->mipmap_zero[idx2] * 3 + 2] +
-                c->rgb_data[b->mipmap_zero[idx3] * 3 + 2] +
-                c->rgb_data[b->mipmap_zero[idx4] * 3 + 2];
+            int sum_b = b->rgb_data[b->mipmap_zero[idx1] * 3 + 2] +
+                b->rgb_data[b->mipmap_zero[idx2] * 3 + 2] +
+                b->rgb_data[b->mipmap_zero[idx3] * 3 + 2] +
+                b->rgb_data[b->mipmap_zero[idx4] * 3 + 2];
 
             int dest_idx = (y * (m->width / 2) + x) * 3;
 

@@ -3,6 +3,5 @@
 
 #include "wad3/miptex/wad3miptex.h"
 #include "wad3/miptex/wad3miptexbuffers.h"
-#include "wad3/miptex/wad3miptexpalettecolordata.h"
 
 #endif

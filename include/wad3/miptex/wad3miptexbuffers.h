@@ -18,6 +18,10 @@ typedef struct {
     size_t mip1_size;
     size_t mip2_size;
     size_t mip3_size;
+    uint32_t width;
+    uint32_t height;
+    uint16_t palette_size;
+    uint8_t * rgb_data;
 } WAD3MipTexBuffers;
 
 int init_wad3miptexbuffers_from_data(

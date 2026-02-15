@@ -60,7 +60,6 @@ int create_mipmap_zero(
 int create_mipmap_one(
     const char * path,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 );
@@ -68,7 +67,6 @@ int create_mipmap_one(
 int create_mipmap_two(
     const char * path,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 );
@@ -76,7 +74,6 @@ int create_mipmap_two(
 int create_mipmap_three(
     const char * path,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 );
@@ -84,7 +81,6 @@ int create_mipmap_three(
 int classic_func(
     char ** paths,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 );
@@ -92,7 +88,6 @@ int classic_func(
 int modern_func(
     char ** paths,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m
 );
@@ -102,7 +97,6 @@ int modern_func(
 int create_mipmap_one_modern(
     const char * path,
     const char * output_path,
-    const WAD3MipTexPaletteColorData * c,
     const WAD3MipTexBuffers * b,
     const WAD3MipTex * m,
     uint8_t * rgb_data
@@ -111,8 +105,6 @@ int create_mipmap_one_modern(
 int create_mipmap_two_modern(
     const char * path,
     const char * output_path,
-    // const WAD3MipTexPaletteColorData * c,
-    // const WAD3MipTexBuffers * b,
     const WAD3MipTex * m,
     uint8_t * rgb_data_one,
     uint8_t * rgb_data_two
@@ -121,8 +113,6 @@ int create_mipmap_two_modern(
 int create_mipmap_three_modern(
     const char * path,
     const char * output_path,
-    // const WAD3MipTexPaletteColorData * c,
-    // const WAD3MipTexBuffers * b,
     const WAD3MipTex * m,
     uint8_t * rgb_data_two,
     uint8_t * rgb_data_three
