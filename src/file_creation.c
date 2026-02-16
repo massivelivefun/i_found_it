@@ -177,14 +177,18 @@ int export_font_metrics_json(
     fprintf(f, "  \"row_height\": %u,\n", font->row_height);
     fprintf(f, "  \"characters\": [\n");
 
-    for (int i = 0; i < 256; i++) {
-        fprintf(f, "    { \"id\": %d, \"offset\": %u, \"width\": %u }%s\n",
+    for (int i = 0; i < 255; i++) {
+        fprintf(f, "    { \"id\": %d, \"offset\": %u, \"width\": %u },\n",
             i,
             font->char_info[i].start_offset,
-            font->char_info[i].char_width,
-            (i == 255) ? "" : ","
+            font->char_info[i].char_width
         );
     }
+
+    fprintf(f, "    { \"id\": 255, \"offset\": %u, \"width\": %u }\n",
+        font->char_info[255].start_offset,
+        font->char_info[255].char_width
+    );
 
     fprintf(f, "  ]\n}\n");
     fclose(f);
