@@ -12,35 +12,24 @@
 #include "wad3/wad3font.h"
 #include "wad3/wad3filetypes.h"
 
+#include "export_context.h"
 #include "utils.h"
 #include "file_creation.h"
 #include "file_mapper.h"
 #include "terminal.h"
 
-int file_type_operations(
-    Arena * arena,
-    const char file_type,
-    const char * safe_texture_name,
-    const char * output_path,
-    uint32_t entry_offset,
-    MappedFile * file,
-    bool classic
-) {
+int file_type_operations(ExportContext * ctx, const char file_type) {
     switch (file_type) {
     case PIC: {
         // Picture, Qpic
         char * path;
         if (create_single_arena_output_file_path(
-            arena, &path, output_path,
-            safe_texture_name, "", ".ppm") != IFI_OK
-        ) {
+            ctx, &path, "", ".ppm") != IFI_OK)
+        {
             fprintf(stderr, "Failed to create path.\n");
             return 1;
         }
-        if (create_picture(
-            arena, file->data, output_path,
-            entry_offset, path) != IFI_OK
-        ) {
+        if (create_picture(ctx, path) != IFI_OK) {
             fprintf(stderr, "Error creating the picture.\n");
             return 1;
         }
@@ -51,16 +40,12 @@ int file_type_operations(
         // Mipmap Texture
         char * paths[MIPMAP_COUNT];
         if (create_multi_arena_output_file_paths(
-            arena, paths, output_path, safe_texture_name,
-            mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK
-        ) {
+            ctx, paths, mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK)
+        {
             fprintf(stderr, "Failed to create paths.\n");
             return 1;
         }
-        if (create_textures_from_miptex(
-            arena, file->data, output_path,
-            entry_offset, paths, classic) != IFI_OK
-        ) {
+        if (create_textures_from_miptex(ctx, paths) != IFI_OK) {
             fprintf(stderr, "Error creating the textures.\n");
             return 1;
         }
@@ -70,25 +55,19 @@ int file_type_operations(
         // Font Sprite Sheet
         char * path;
         if (create_single_arena_output_file_path(
-            arena, &path, output_path,
-            safe_texture_name, "", ".ppm") != IFI_OK
-        ) {
+            ctx, &path, "", ".ppm") != IFI_OK)
+        {
             fprintf(stderr, "Failed to create ppm file.\n");
             return 1;
         }
         char * json_path;
         if (create_single_arena_output_file_path(
-            arena, &json_path, output_path,
-            safe_texture_name, "", ".json") != IFI_OK
-        ) {
+            ctx, &json_path, "", ".json") != IFI_OK)
+        {
             fprintf(stderr, "Failed to create json.\n");
             return 1;
         }
-        if (create_font_sheet(
-            arena, file->data, output_path,
-            entry_offset, path, json_path,
-            safe_texture_name) != IFI_OK
-        ) {
+        if (create_font_sheet(ctx, path, json_path) != IFI_OK) {
             fprintf(stderr, "Error creating the font.\n");
             return 1;
         }
@@ -219,12 +198,18 @@ int main(int argc, char ** argv) {
                 memcpy(safe_texture_name, texture_name, 16);
                 safe_texture_name[15] = '\0';
 
+                ExportContext ctx = {
+                    .arena = &wad_arena,
+                    .file_data = wad_file.data,
+                    .output_path = output_path,
+                    .texture_name = safe_texture_name,
+                    .entry_offset = entry_offset,
+                    .classic_mode = classic,
+                };
+
                 size_t temp_memory_mark = arena_save(&wad_arena);
 
-                if (file_type_operations(
-                    &wad_arena, file_type, safe_texture_name,
-                    output_path, entry_offset, &wad_file, classic)
-                ) {
+                if (file_type_operations(&ctx, file_type)) {
                     fprintf(stderr, "file_type_operation failed.\n");
                 }
 

@@ -14,25 +14,22 @@ const char * mipmap_suffixes[] = { "_mm0", "_mm1", "_mm2", "_mm3" };
 // @param char * texture_name_suffixes - CANNOT be passed in with NULL
 // 
 int create_multi_arena_output_file_paths(
-    Arena * arena,
+    ExportContext * ctx,
     char ** paths,
-    const char * output_path,
-    const char * texture_name,
     const char ** texture_name_suffixes,
     const char * file_extension,
     size_t texture_count
 ) {
-    if (arena == NULL || paths == NULL || output_path == NULL ||
-            texture_name == NULL || (texture_name_suffixes == NULL &&
-                texture_count > 0) || file_extension == NULL) {
+    if (ctx == NULL || paths == NULL || (texture_name_suffixes == NULL
+        && texture_count > 0) || file_extension == NULL)
+    {
         fprintf(stderr, "Arguments cannot be NULL.\n");
         return IFI_ERROR_NULL_ARGS;
     }
 
     for (size_t i = 0; i < texture_count; i++) {
         int result = create_single_arena_output_file_path(
-            arena, &paths[i], output_path, texture_name,
-            texture_name_suffixes[i], file_extension
+            ctx, &paths[i], texture_name_suffixes[i], file_extension
         );
 
         if (result != IFI_OK) {
@@ -46,15 +43,14 @@ int create_multi_arena_output_file_paths(
 // CONTRACT: Valid arguments need to be null-terminated strings.
 // EXCEPTION: @param char * texture_name_suffix - Can be passed in with NULL
 int create_single_arena_output_file_path(
-    Arena * arena,
+    ExportContext * ctx,
     char ** path,
-    const char * output_path,
-    const char * texture_name,
     const char * texture_name_suffix,
     const char * file_extension
 ) {
-    if (arena == NULL || path == NULL || output_path == NULL ||
-        texture_name == NULL || file_extension == NULL) {
+    if (ctx == NULL || ctx->arena == NULL || ctx->output_path == NULL ||
+        ctx->texture_name == NULL || path == NULL || file_extension == NULL)
+    {
         fprintf(stderr, "Arguments cannot be NULL.\n");
         return IFI_ERROR_NULL_ARGS;
     }
@@ -62,29 +58,23 @@ int create_single_arena_output_file_path(
     size_t suffix_len = (texture_name_suffix == NULL) ? 0 :
         strlen(texture_name_suffix);
     // Include null terminator into the length with the plus one
-    size_t len = strlen(output_path) + strlen(texture_name) + suffix_len +
-        strlen(file_extension) + 1;
-    char * output_file_name = (char *)arena_push(arena, len);
+    size_t len = strlen(ctx->output_path) + strlen(ctx->texture_name) +
+        suffix_len + strlen(file_extension) + 1;
+    char * output_file_name = (char *)arena_push(ctx->arena, len);
     if (output_file_name == NULL) {
         fprintf(stderr, "Failed to allocate memory for output file path.\n");
         return IFI_ERROR_MEMORY;
     }
     snprintf(
-        output_file_name, len, "%s%s%s%s", output_path, texture_name,
+        output_file_name, len, "%s%s%s%s", ctx->output_path, ctx->texture_name,
         (texture_name_suffix == NULL) ? "" : texture_name_suffix,
         file_extension);
     *path = output_file_name;
     return 0;
 }
 
-int create_picture(
-    Arena * arena,
-    const uint8_t * file_data,
-    const char * output_path,
-    uint32_t entry_offset,
-    char * path
-) {
-    const uint8_t * picture_data = file_data + entry_offset;
+int create_picture(ExportContext * ctx, char * path) {
+    const uint8_t * picture_data = ctx->file_data + ctx->entry_offset;
 
     WAD3Pic pic;
     init_wad3pic_from_data(&pic, picture_data);
@@ -94,22 +84,15 @@ int create_picture(
     );
     if (picture_result != 0) {
         fprintf(stderr, "Failed to create picture at: %s\n",
-            output_path);
+            ctx->output_path);
         return 1;
     }
     return 0;
 }
 
-int create_textures_from_miptex(
-    Arena * arena,
-    const uint8_t * file_data,
-    const char * output_path,
-    uint32_t entry_offset,
-    char ** paths,
-    bool classic
-) {
+int create_textures_from_miptex(ExportContext * ctx, char ** paths) {
     int status = IFI_OK;
-    const uint8_t * miptex_data = file_data + entry_offset;
+    const uint8_t * miptex_data = ctx->file_data + ctx->entry_offset;
 
     WAD3MipTex m;
     init_wad3miptex_from_data(&m, miptex_data);
@@ -117,15 +100,18 @@ int create_textures_from_miptex(
     WAD3MipTexBuffers b;
     init_wad3miptexbuffers_from_data(&b, &m, miptex_data);
 
-    if (classic) {
-        if (classic_func(paths, output_path, &b) != IFI_OK) {
-            fprintf(stderr, "Classic failed.\n");
-            status = IFI_ERROR_INVALID;
+    switch((uint8_t)(ctx->classic_mode)) {
+        case true: {
+            if (classic_func(&b, ctx->output_path, paths) != IFI_OK) {
+                fprintf(stderr, "Classic failed.\n");
+                status = IFI_ERROR_INVALID;
+            }
         }
-    } else {
-        if (modern_func(paths, output_path, &b) != IFI_OK) {
-            fprintf(stderr, "Modern failed.\n");
-            status = IFI_ERROR_INVALID;
+        case false: {
+            if (modern_func(&b, ctx->output_path, paths) != IFI_OK) {
+                fprintf(stderr, "Modern failed.\n");
+                status = IFI_ERROR_INVALID;
+            }
         }
     }
 
@@ -133,27 +119,24 @@ int create_textures_from_miptex(
 }
 
 int create_font_sheet(
-    Arena * arena,
-    const uint8_t * file_data,
-    const char * output_path,
-    uint32_t entry_offset,
+    ExportContext * ctx,
     const char * path,
-    const char * json_path,
-    const char * safe_texture_name
-) {
-    const uint8_t * font_data = file_data + entry_offset;
+    const char * json_path)
+{
+    const uint8_t * font_data = ctx->file_data + ctx->entry_offset;
     
     WAD3Font font;
     init_wad3font_from_data(&font, font_data);
 
     if (create_mipmap(
-        path, font.width, font.height, font.indices, font.rgb_data) != 0
-    ) {
-        fprintf(stderr, "Failed to create font image: %s\n", output_path);
+        path, font.width, font.height, font.indices, font.rgb_data) != 0)
+    {
+        fprintf(stderr, "Failed to create font image: %s\n",
+            ctx->output_path);
         return 1;
     }
 
-    if (export_font_metrics_json(&font, json_path, safe_texture_name)) {
+    if (export_font_metrics_json(&font, json_path, ctx->texture_name)) {
         fprintf(stderr, "Failed to create font json: %s\n", json_path);
         return 1;
     }
@@ -196,9 +179,9 @@ int export_font_metrics_json(
 }
 
 int modern_func(
-    char ** paths,
+    const WAD3MipTexBuffers * b,
     const char * output_path,
-    const WAD3MipTexBuffers * b
+    char ** paths
 ) {
     uint8_t rgb_one[(b->width / 2) * (b->height / 2) * 3];
     uint8_t rgb_two[(b->width / 4) * (b->height / 4) * 3];
@@ -243,9 +226,9 @@ int modern_func(
 }
 
 int classic_func(
-    char ** paths,
+    const WAD3MipTexBuffers * b,
     const char * output_path,
-    const WAD3MipTexBuffers * b
+    char ** paths
 ) {
     // MipMap Zero
     if (create_mipmap(

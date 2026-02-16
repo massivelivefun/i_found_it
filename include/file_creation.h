@@ -9,54 +9,34 @@
 #include "wad3/wad3directoryentry.h"
 #include "wad3/wad3font.h"
 
+#include "export_context.h"
+
 #define MIPMAP_COUNT 4
 
 extern const char * mipmap_suffixes[MIPMAP_COUNT];
 
 int create_multi_arena_output_file_paths(
-    Arena * arena,
+    ExportContext * ctx,
     char ** paths,
-    const char * output_path,
-    const char * texture_name,
     const char ** texture_name_suffixes,
     const char * file_extension,
     size_t texture_count
 );
 
 int create_single_arena_output_file_path(
-    Arena * arena,
+    ExportContext * ctx,
     char ** path,
-    const char * output_path,
-    const char * texture_name,
     const char * texture_name_suffix,
     const char * file_extension
 );
 
-int create_picture(
-    Arena * arena,
-    const uint8_t * file_data,
-    const char * output_path,
-    uint32_t entry_offset,
-    char * path
-);
-
-int create_textures_from_miptex(
-    Arena * arena,
-    const uint8_t * file_data,
-    const char * output_path,
-    uint32_t entry_offset,
-    char ** paths,
-    bool classic
-);
+int create_picture(ExportContext * ctx, char * path);
+int create_textures_from_miptex(ExportContext * ctx, char ** paths);
 
 int create_font_sheet(
-    Arena * arena,
-    const uint8_t * file_data,
-    const char * output_path,
-    uint32_t entry_offset,
+    ExportContext * ctx,
     const char * path,
-    const char * json_path,
-    const char * safe_texture_name
+    const char * json_path
 );
 
 int export_font_metrics_json(
@@ -66,15 +46,15 @@ int export_font_metrics_json(
 );
 
 int classic_func(
-    char ** paths,
+    const WAD3MipTexBuffers * b,
     const char * output_path,
-    const WAD3MipTexBuffers * b
+    char ** paths
 );
 
 int modern_func(
-    char ** paths,
+    const WAD3MipTexBuffers * b,
     const char * output_path,
-    const WAD3MipTexBuffers * b
+    char ** paths
 );
 
 int create_mipmap(
