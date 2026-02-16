@@ -106,12 +106,14 @@ int create_textures_from_miptex(ExportContext * ctx, char ** paths) {
                 fprintf(stderr, "Classic failed.\n");
                 status = IFI_ERROR_INVALID;
             }
+            break;
         }
         case false: {
             if (modern_func(&b, ctx->output_path, paths) != IFI_OK) {
                 fprintf(stderr, "Modern failed.\n");
                 status = IFI_ERROR_INVALID;
             }
+            break;
         }
     }
 
@@ -136,7 +138,7 @@ int create_font_sheet(
         return 1;
     }
 
-    if (export_font_metrics_json(&font, json_path, ctx->texture_name)) {
+    if (export_font_metrics_json(ctx, &font, json_path)) {
         fprintf(stderr, "Failed to create font json: %s\n", json_path);
         return 1;
     }
@@ -145,15 +147,15 @@ int create_font_sheet(
 }
 
 int export_font_metrics_json(
+    ExportContext * ctx,
     const WAD3Font * font,
-    const char * json_path,
-    const char * texture_name
+    const char * json_path
 ) {
     FILE * f = fopen(json_path, "w");
     if (f == NULL) { return 1; }
 
     fprintf(f, "{\n");
-    fprintf(f, "  \"texture\": \"%s.ppm\",\n", texture_name);
+    fprintf(f, "  \"texture\": \"%s.ppm\",\n", ctx->texture_name);
     fprintf(f, "  \"width\": %u,\n", font->width);
     fprintf(f, "  \"height\": %u,\n", font->height);
     fprintf(f, "  \"row_count\": %u,\n", font->row_count);

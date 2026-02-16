@@ -40,9 +40,9 @@ int create_font_sheet(
 );
 
 int export_font_metrics_json(
+    ExportContext * ctx,
     const WAD3Font * font,
-    const char * json_path,
-    const char * texture_name
+    const char * json_path
 );
 
 int classic_func(
