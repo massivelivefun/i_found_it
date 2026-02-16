@@ -16,6 +16,90 @@
 #include "file_mapper.h"
 #include "terminal.h"
 
+int file_type_operations(
+    Arena * arena,
+    const char file_type,
+    const char * safe_texture_name,
+    const char * output_path,
+    uint32_t entry_offset,
+    MappedFile * file,
+    bool classic
+) {
+    switch (file_type) {
+    case 0x42: {
+        // Picture, Qpic
+        char * path;
+        if (create_single_arena_output_file_path(
+            arena, &path, output_path,
+            safe_texture_name, "", ".ppm") != IFI_OK
+        ) {
+            fprintf(stderr, "Failed to create path.\n");
+            return 1;
+        }
+        if (create_picture(
+            &arena, file->data, output_path,
+            entry_offset, path) != IFI_OK
+        ) {
+            fprintf(stderr, "Error creating the picture.\n");
+            return 1;
+        }
+        break;
+    }
+    case 0x43: {
+        // Mipmap Texture
+        char * paths[MIPMAP_COUNT];
+        if (create_multi_arena_output_file_paths(
+            arena, paths, output_path, safe_texture_name,
+            mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK
+        ) {
+            fprintf(stderr, "Failed to create paths.\n");
+            return 1;
+        }
+        if (create_textures_from_miptex(
+            arena, file->data, output_path,
+            entry_offset, paths, classic) != IFI_OK
+        ) {
+            fprintf(stderr, "Error creating the textures.\n");
+            return 1;
+        }
+        break;
+    }
+    case 0x46: {
+        // Font Sprite Sheet
+        char * path;
+        if (create_single_arena_output_file_path(
+            arena, &path, output_path,
+            safe_texture_name, "", ".ppm") != IFI_OK
+        ) {
+            fprintf(stderr, "Failed to create ppm file.\n");
+            return 1;
+        }
+        char * json_path;
+        if (create_single_arena_output_file_path(
+            arena, &json_path, output_path,
+            safe_texture_name, "", ".json") != IFI_OK
+        ) {
+            fprintf(stderr, "Failed to create json.\n");
+            return 1;
+        }
+        if (create_font_sheet(
+            arena, file->data, output_path,
+            entry_offset, path, json_path,
+            safe_texture_name) != IFI_OK
+        ) {
+            fprintf(stderr, "Error creating the font.\n");
+            return 1;
+        }
+        break;
+    }
+    default:
+        // Not a wad from goldsrc engine
+        printf("Unsupported file_type.\n");
+        return 1;
+    }
+    return 0;
+}
+
 int main(int argc, char ** argv) {
     int result = EXIT_SUCCESS;
     WAD3DirectoryEntry * directory_entries = NULL;
@@ -135,78 +219,15 @@ int main(int argc, char ** argv) {
 
                 size_t temp_memory_mark = arena_save(&wad_arena);
 
-                switch (file_type) {
-                case 0x42: {
-                    // Picture, Qpic
-                    char * path;
-                    if (create_single_arena_output_file_path(
-                        &wad_arena, &path, output_path,
-                        safe_texture_name, "", ".ppm") != IFI_OK
-                    ) {
-                        fprintf(stderr, "Failed to create path.\n");
-                        break;
-                    }
-                    if (create_picture(
-                        &wad_arena, wad_file.data, output_path,
-                        entry_offset, path) != IFI_OK
-                    ) {
-                        fprintf(stderr, "Error creating the picture.\n");
-                        break;
-                    }
+                if (file_type_operations(
+                    &wad_arena, file_type, safe_texture_name,
+                    output_path, entry_offset, &wad_file, classic)
+                ) {
+                    fprintf(stderr, "file_type_operation failed.\n");
+                    arena_restore(&wad_arena, temp_memory_mark);
                     break;
                 }
-                case 0x43: {
-                    // Mipmap Texture
-                    char * paths[MIPMAP_COUNT];
-                    if (create_multi_arena_output_file_paths(
-                        &wad_arena, paths, output_path, safe_texture_name,
-                        mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK
-                    ) {
-                        fprintf(stderr, "Failed to create paths.\n");
-                        break;
-                    }
-                    if (create_textures_from_miptex(
-                        &wad_arena, wad_file.data, output_path,
-                        entry_offset, paths, classic) != IFI_OK
-                    ) {
-                        fprintf(stderr, "Error creating the textures.\n");
-                        break;
-                    }
-                    break;
-                }
-                case 0x46: {
-                    // Font Sprite Sheet
-                    char * path;
-                    if (create_single_arena_output_file_path(
-                        &wad_arena, &path, output_path,
-                        safe_texture_name, "", ".ppm") != IFI_OK
-                    ) {
-                        fprintf(stderr, "Failed to create ppm file.\n");
-                        break;
-                    }
-                    char * json_path;
-                    if (create_single_arena_output_file_path(
-                        &wad_arena, &json_path, output_path,
-                        safe_texture_name, "", ".json") != IFI_OK
-                    ) {
-                        fprintf(stderr, "Failed to create json.\n");
-                        break;
-                    }
-                    if (create_font_sheet(
-                        &wad_arena, wad_file.data, output_path,
-                        entry_offset, path, json_path,
-                        safe_texture_name) != IFI_OK
-                    ) {
-                        fprintf(stderr, "Error creating the font.\n");
-                        break;
-                    }
-                    break;
-                }
-                default:
-                    // Not a wad from goldsrc engine
-                    printf("Unsupported file_type.\n");
-                    break;
-                }
+
                 arena_restore(&wad_arena, temp_memory_mark);
                 break;
             case 2:
