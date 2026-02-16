@@ -37,7 +37,7 @@ int file_type_operations(
             return 1;
         }
         if (create_picture(
-            &arena, file->data, output_path,
+            arena, file->data, output_path,
             entry_offset, path) != IFI_OK
         ) {
             fprintf(stderr, "Error creating the picture.\n");
@@ -224,8 +224,6 @@ int main(int argc, char ** argv) {
                     output_path, entry_offset, &wad_file, classic)
                 ) {
                     fprintf(stderr, "file_type_operation failed.\n");
-                    arena_restore(&wad_arena, temp_memory_mark);
-                    break;
                 }
 
                 arena_restore(&wad_arena, temp_memory_mark);
