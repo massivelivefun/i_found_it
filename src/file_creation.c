@@ -182,7 +182,7 @@ int export_font_metrics_json(
             i,
             font->char_info[i].start_offset,
             font->char_info[i].char_width,
-            (i == 255) ? "" : "," // No trailing comma on the last element!
+            (i == 255) ? "" : ","
         );
     }
 
