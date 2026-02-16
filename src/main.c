@@ -10,6 +10,7 @@
 #include "wad3/wad3header.h"
 #include "wad3/wad3pic.h"
 #include "wad3/wad3font.h"
+#include "wad3/wad3filetypes.h"
 
 #include "utils.h"
 #include "file_creation.h"
@@ -26,7 +27,7 @@ int file_type_operations(
     bool classic
 ) {
     switch (file_type) {
-    case 0x42: {
+    case PIC: {
         // Picture, Qpic
         char * path;
         if (create_single_arena_output_file_path(
@@ -45,7 +46,8 @@ int file_type_operations(
         }
         break;
     }
-    case 0x43: {
+    case LUMPY:
+    case MIPTEX: {
         // Mipmap Texture
         char * paths[MIPMAP_COUNT];
         if (create_multi_arena_output_file_paths(
@@ -64,7 +66,7 @@ int file_type_operations(
         }
         break;
     }
-    case 0x46: {
+    case FONT: {
         // Font Sprite Sheet
         char * path;
         if (create_single_arena_output_file_path(
