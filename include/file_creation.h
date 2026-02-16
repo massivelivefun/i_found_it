@@ -32,11 +32,11 @@ int create_single_arena_output_file_path(
 );
 
 int create_picture(
-    FILE * f,
-    const char * input_file_path,
+    Arena * arena,
+    const uint8_t * file_data,
     const char * output_path,
-    WAD3DirectoryEntry * directory_entries,
-    uint32_t number_of_dirs
+    uint32_t entry_offset,
+    char * path
 );
 
 int create_textures_from_miptex(
@@ -48,74 +48,34 @@ int create_textures_from_miptex(
     bool classic
 );
 
-int create_mipmap_zero(
-    const char * path,
+int classic_func(
+    char ** paths,
     const char * output_path,
+    const WAD3MipTexBuffers * b
+);
+
+int modern_func(
+    char ** paths,
+    const char * output_path,
+    const WAD3MipTexBuffers * b
+);
+
+int create_mipmap(
+    const char * path,
     uint32_t width,
     uint32_t height,
     uint8_t * indices,
     uint8_t * rgb_data
 );
 
-int create_mipmap_one(
-    const char * path,
-    const char * output_path,
-    const WAD3MipTexBuffers * b,
-    const WAD3MipTex * m
-);
-
-int create_mipmap_two(
-    const char * path,
-    const char * output_path,
-    const WAD3MipTexBuffers * b,
-    const WAD3MipTex * m
-);
-
-int create_mipmap_three(
-    const char * path,
-    const char * output_path,
-    const WAD3MipTexBuffers * b,
-    const WAD3MipTex * m
-);
-
-int classic_func(
-    char ** paths,
-    const char * output_path,
-    const WAD3MipTexBuffers * b,
-    const WAD3MipTex * m
-);
-
-int modern_func(
-    char ** paths,
-    const char * output_path,
-    const WAD3MipTexBuffers * b,
-    const WAD3MipTex * m
-);
-
-// no zero
-
-int create_mipmap_one_modern(
-    const char * path,
-    const char * output_path,
-    const WAD3MipTexBuffers * b,
-    const WAD3MipTex * m,
-    uint8_t * rgb_data
-);
-
-int create_mipmap_two_modern(
-    const char * path,
-    const char * output_path,
-    const WAD3MipTex * m,
-    uint8_t * rgb_data_one,
-    uint8_t * rgb_data_two
-);
-
-int create_mipmap_three_modern(
-    const char * path,
-    const char * output_path,
-    const WAD3MipTex * m,
-    uint8_t * rgb_data_two,
-    uint8_t * rgb_data_three
+int create_mipmap_modern(
+    const char * path, 
+    uint32_t dest_w,
+    uint32_t dest_h, 
+    const uint8_t * src_indices,
+    const uint8_t * palette,
+    const uint8_t * src_rgb,
+    uint8_t * dest_rgb
 );
 
 #endif

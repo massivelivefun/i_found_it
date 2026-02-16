@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "utils/endian_utils.h"
+
 typedef struct {
     uint32_t width;
     uint32_t height;
@@ -14,6 +16,7 @@ typedef struct {
     uint8_t * rgb_data;
 } WAD3Pic;
 
-int new_wad3pic(FILE * f, WAD3Pic * p);
+int init_wad3pic_from_data(WAD3Pic * p, const uint8_t * data);
+void print_wad3pic(WAD3Pic * p);
 
 #endif

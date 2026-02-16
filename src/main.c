@@ -112,43 +112,77 @@ int main(int argc, char ** argv) {
                 } else {
                     if (errno != EEXIST) {
                         perror("Error creating directory.\n");
-                        result = EXIT_FAILURE;
-                        goto cleanup;
+                        break;
                     }
                 }
                 uint32_t number = 0;
                 if (handle_file_entry_select(&number, h.num_dirs)
                     != IFI_OK) {
                     fprintf(stderr, "Failed to parse selection.\n");
-                    return IFI_ERROR_INVALID;
-                }
-
-                uint32_t entry_offset =
-                    directory_entries[number - 1].entry_offset;
-                const char * texture_name =
-                    directory_entries[number - 1].texture_name;
-
-                size_t temp_memory_mark = arena_save(&wad_arena);
-
-                char * paths[MIPMAP_COUNT];
-                if (create_multi_arena_output_file_paths(
-                    &wad_arena, paths, output_path, texture_name,
-                    mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK
-                ) {
-                    fprintf(stderr, "Failed to create paths.\n");
-                    arena_restore(&wad_arena, temp_memory_mark);
-                    // The paths were cleaned up if constructor failed
                     break;
                 }
 
-                if (create_textures_from_miptex(
-                    &wad_arena, wad_file.data, output_path,
-                    entry_offset, paths, classic) != IFI_OK) {
-                    fprintf(stderr, "Error creating the textures.\n");
+                WAD3DirectoryEntry * entry = &(directory_entries[number - 1]);
+                uint32_t entry_offset = entry->entry_offset;
+                const char * texture_name = entry->texture_name;
+                const char file_type = entry->file_type;
+
+                // use safe texture name
+                char safe_texture_name[16] = {0};
+                memcpy(safe_texture_name, texture_name, 16);
+                safe_texture_name[15] = '\0';
+
+                size_t temp_memory_mark = arena_save(&wad_arena);
+
+                switch (file_type) {
+                case 0x42: {
+                    // Picture, Qpic
+                    char * path;
+                    if (create_single_arena_output_file_path(
+                        &wad_arena, &path, output_path,
+                        safe_texture_name, "", ".ppm") != IFI_OK
+                    ) {
+                        fprintf(stderr, "Failed to create path.\n");
+                        break;
+                    }
+                    if (create_picture(
+                        &wad_arena, wad_file.data, output_path,
+                        entry_offset, path) != IFI_OK
+                    ) {
+                        fprintf(stderr, "Error creating the picture.\n");
+                        break;
+                    }
+                    break;
                 }
-
+                case 0x43: {
+                    // Mipmap Texture
+                    char * paths[MIPMAP_COUNT];
+                    if (create_multi_arena_output_file_paths(
+                        &wad_arena, paths, output_path, safe_texture_name,
+                        mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK
+                    ) {
+                        fprintf(stderr, "Failed to create paths.\n");
+                        break;
+                    }
+                    if (create_textures_from_miptex(
+                        &wad_arena, wad_file.data, output_path,
+                        entry_offset, paths, classic) != IFI_OK
+                    ) {
+                        fprintf(stderr, "Error creating the textures.\n");
+                        break;
+                    }
+                    break;
+                }
+                case 0x45:
+                    // Font
+                    printf("Not yet supported.\n");
+                    break;
+                default:
+                    // Not a wad from goldsrc engine
+                    printf("Unsupported file_type.\n");
+                    break;
+                }
                 arena_restore(&wad_arena, temp_memory_mark);
-
                 break;
             case 2:
                 for (size_t i = 0; i < h.num_dirs; i += 1) {
@@ -162,7 +196,7 @@ int main(int argc, char ** argv) {
                     classic ? "true" : "false");
                 break;
             default:
-                printf("\n(!) Invalid input. Please type 1-3, or q or quit.\n");
+                printf("\n(!) Invalid input. Please type 1, 2, 3, or q.\n");
                 break;
         }
     } while (quit == false);
