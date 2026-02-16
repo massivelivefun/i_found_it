@@ -173,10 +173,25 @@ int main(int argc, char ** argv) {
                     }
                     break;
                 }
-                case 0x45:
-                    // Font
-                    printf("Not yet supported.\n");
+                case 0x46: {
+                    // Font Sprite Sheet
+                    char * path;
+                    if (create_single_arena_output_file_path(
+                        &wad_arena, &path, output_path,
+                        safe_texture_name, "", ".ppm") != IFI_OK
+                    ) {
+                        fprintf(stderr, "Failed to create path.\n");
+                        break;
+                    }
+                    if (create_font_sheet(
+                        &wad_arena, wad_file.data, output_path,
+                        entry_offset, path) != IFI_OK
+                    ) {
+                        fprintf(stderr, "Error creating the font.\n");
+                        break;
+                    }
                     break;
+                }
                 default:
                     // Not a wad from goldsrc engine
                     printf("Unsupported file_type.\n");

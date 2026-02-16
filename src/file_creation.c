@@ -3,6 +3,7 @@
 #include "wad3/wad3directoryentry.h"
 #include "wad3/wad3header.h"
 #include "wad3/wad3pic.h"
+#include "wad3/wad3font.h"
 
 #include "ifi_errors.h"
 #include "terminal.h"
@@ -131,6 +132,29 @@ int create_textures_from_miptex(
     return status;
 }
 
+int create_font_sheet(
+    Arena * arena,
+    const uint8_t * file_data,
+    const char * output_path,
+    uint32_t entry_offset,
+    const char * path
+) {
+    const uint8_t * font_data = file_data + entry_offset;
+    
+    WAD3Font font;
+    init_wad3font_from_data(&font, font_data);
+
+    if (create_mipmap(
+        path, font.width, font.height,
+        font.indices, font.rgb_data) != 0
+    ) {
+        fprintf(stderr, "Failed to create font image: %s\n", output_path);
+        return 1;
+    }
+
+    return 0;
+}
+
 int modern_func(
     char ** paths,
     const char * output_path,
@@ -153,7 +177,7 @@ int modern_func(
     if (create_mipmap_modern(
         paths[1], b->width / 2, b->height / 2, b->mipmap_zero, b->rgb_data, NULL, rgb_one
     ) != 0) {
-        fprintf(stderr, "Failed to create mipmap zero at path: %s\n",
+        fprintf(stderr, "Failed to create mipmap one at path: %s\n",
             output_path);
         return 1;
     }
@@ -162,7 +186,7 @@ int modern_func(
     if (create_mipmap_modern(
         paths[2], b->width / 4, b->height / 4, NULL, NULL, rgb_one, rgb_two
     ) != 0) {
-        fprintf(stderr, "Failed to create mipmap zero at path: %s\n",
+        fprintf(stderr, "Failed to create mipmap two at path: %s\n",
             output_path);
         return 1;
     }
@@ -171,7 +195,7 @@ int modern_func(
     if (create_mipmap_modern(
         paths[3], b->width / 8, b->height / 8, NULL, NULL, rgb_two, rgb_three
     ) != 0) {
-        fprintf(stderr, "Failed to create mipmap zero at path: %s\n",
+        fprintf(stderr, "Failed to create mipmap three at path: %s\n",
             output_path);
         return 1;
     }
@@ -198,7 +222,7 @@ int classic_func(
         paths[1], b->width / 2, b->height / 2,
         b->mipmap_one, b->rgb_data) != 0
     ) {
-        fprintf(stderr, "Failed to create mipmap zero at: %s\n",
+        fprintf(stderr, "Failed to create mipmap one at: %s\n",
             output_path);
         return 1;
     }
@@ -208,7 +232,7 @@ int classic_func(
         paths[2], b->width / 4, b->height / 4,
         b->mipmap_two, b->rgb_data) != 0
     ) {
-        fprintf(stderr, "Failed to create mipmap zero at: %s\n",
+        fprintf(stderr, "Failed to create mipmap two at: %s\n",
             output_path);
         return 1;
     }
@@ -218,7 +242,7 @@ int classic_func(
         paths[3], b->width / 8, b->height / 8,
         b->mipmap_three, b->rgb_data) != 0
     ) {
-        fprintf(stderr, "Failed to create mipmap zero at: %s\n",
+        fprintf(stderr, "Failed to create mipmap three at: %s\n",
             output_path);
         return 1;
     }

@@ -10,14 +10,16 @@ typedef struct {
 } WAD3FontCharInfo;
 
 typedef struct {
-    uint32_t width;
-    uint32_t height;
-    uint32_t row_count;
-    uint32_t row_height;
-    WAD3FontCharInfo char_info[256];
-    uint8_t * indices;
-    uint16_t palette_size;
-    uint8_t * rgb_data;
+    uint32_t width;        // Width is always 256 pixels
+    uint32_t height;       // So probably height is 256 pixels also
+    uint32_t row_count;    // Number of fixed-height character rows
+    uint32_t row_height;   // Height of a row
+    WAD3FontCharInfo char_info[256]; // Info about each character
+    uint8_t * indices;     // Width * Height
+    uint16_t palette_size; // Colors
+    uint8_t * rgb_data;    // Palette_size * 3
 } WAD3Font;
+
+int init_wad3font_from_data(WAD3Font * f, const uint8_t * data);
 
 #endif

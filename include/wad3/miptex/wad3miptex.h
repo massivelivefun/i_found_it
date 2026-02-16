@@ -15,11 +15,6 @@ typedef struct {
     uint32_t offsets[MAX_OFFSETS]; // Offsets to the 4 mipmap levels
 } WAD3MipTex;
 
-//
-// WAD3MipTex functions
-//
-
-int init_wad3miptex(WAD3MipTex * m);
 int init_wad3miptex_from_data(WAD3MipTex * m, const uint8_t * data);
 int print_wad3miptex(const WAD3MipTex * m);
 

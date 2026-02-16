@@ -8,7 +8,7 @@
 #define MAX_TEXTURE_NAME 16
 
 typedef struct {
-	uint32_t entry_offset; // Offset from the beginning of the WAD3 data
+    uint32_t entry_offset; // Offset from the beginning of the WAD3 data
     uint32_t disk_size;    // The entry's size in the archive in bytes
     uint32_t entry_size;   // The entry's uncompressed size
     uint8_t file_type;     // File type of the entry

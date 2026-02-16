@@ -5,17 +5,6 @@
 #include "utils.h"
 #include "ifi_errors.h"
 
-//
-// Mipmap Textures
-//
-
-int init_wad3miptex(WAD3MipTex * m) {
-    if (m == NULL) { return IFI_ERROR_NULL_ARGS; }
-    // `memset` is valid, WAD3MipTex is the owner of all its data
-    (void)memset(m, 0, sizeof(WAD3MipTex));
-    return IFI_OK;
-}
-
 int init_wad3miptex_from_data(WAD3MipTex * m, const uint8_t * data) {
     if (m == NULL || data == NULL) { return IFI_ERROR_NULL_ARGS; }
     memcpy(m->name, data, MAX_TEXTURE_NAME);

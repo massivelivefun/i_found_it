@@ -48,6 +48,14 @@ int create_textures_from_miptex(
     bool classic
 );
 
+int create_font_sheet(
+    Arena * arena,
+    const uint8_t * file_data,
+    const char * output_path,
+    uint32_t entry_offset,
+    const char * path
+);
+
 int classic_func(
     char ** paths,
     const char * output_path,
