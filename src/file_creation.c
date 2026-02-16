@@ -137,7 +137,9 @@ int create_font_sheet(
     const uint8_t * file_data,
     const char * output_path,
     uint32_t entry_offset,
-    const char * path
+    const char * path,
+    const char * json_path,
+    const char * safe_texture_name
 ) {
     const uint8_t * font_data = file_data + entry_offset;
     
@@ -145,13 +147,47 @@ int create_font_sheet(
     init_wad3font_from_data(&font, font_data);
 
     if (create_mipmap(
-        path, font.width, font.height,
-        font.indices, font.rgb_data) != 0
+        path, font.width, font.height, font.indices, font.rgb_data) != 0
     ) {
         fprintf(stderr, "Failed to create font image: %s\n", output_path);
         return 1;
     }
 
+    if (export_font_metrics_json(&font, json_path, safe_texture_name)) {
+        fprintf(stderr, "Failed to create font json: %s\n", json_path);
+        return 1;
+    }
+
+    return 0;
+}
+
+int export_font_metrics_json(
+    const WAD3Font * font,
+    const char * json_path,
+    const char * texture_name
+) {
+    FILE * f = fopen(json_path, "w");
+    if (f == NULL) { return 1; }
+
+    fprintf(f, "{\n");
+    fprintf(f, "  \"texture\": \"%s.ppm\",\n", texture_name);
+    fprintf(f, "  \"width\": %u,\n", font->width);
+    fprintf(f, "  \"height\": %u,\n", font->height);
+    fprintf(f, "  \"row_count\": %u,\n", font->row_count);
+    fprintf(f, "  \"row_height\": %u,\n", font->row_height);
+    fprintf(f, "  \"characters\": [\n");
+
+    for (int i = 0; i < 256; i++) {
+        fprintf(f, "    { \"id\": %d, \"offset\": %u, \"width\": %u }%s\n",
+            i,
+            font->char_info[i].start_offset,
+            font->char_info[i].char_width,
+            (i == 255) ? "" : "," // No trailing comma on the last element!
+        );
+    }
+
+    fprintf(f, "  ]\n}\n");
+    fclose(f);
     return 0;
 }
 

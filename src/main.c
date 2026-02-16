@@ -9,6 +9,7 @@
 #include "wad3/wad3directoryentry.h"
 #include "wad3/wad3header.h"
 #include "wad3/wad3pic.h"
+#include "wad3/wad3font.h"
 
 #include "utils.h"
 #include "file_creation.h"
@@ -180,12 +181,21 @@ int main(int argc, char ** argv) {
                         &wad_arena, &path, output_path,
                         safe_texture_name, "", ".ppm") != IFI_OK
                     ) {
-                        fprintf(stderr, "Failed to create path.\n");
+                        fprintf(stderr, "Failed to create ppm file.\n");
+                        break;
+                    }
+                    char * json_path;
+                    if (create_single_arena_output_file_path(
+                        &wad_arena, &json_path, output_path,
+                        safe_texture_name, "", ".json") != IFI_OK
+                    ) {
+                        fprintf(stderr, "Failed to create json.\n");
                         break;
                     }
                     if (create_font_sheet(
                         &wad_arena, wad_file.data, output_path,
-                        entry_offset, path) != IFI_OK
+                        entry_offset, path, json_path,
+                        safe_texture_name) != IFI_OK
                     ) {
                         fprintf(stderr, "Error creating the font.\n");
                         break;

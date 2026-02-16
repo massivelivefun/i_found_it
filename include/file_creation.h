@@ -7,6 +7,7 @@
 
 #include "wad3/miptex.h"
 #include "wad3/wad3directoryentry.h"
+#include "wad3/wad3font.h"
 
 #define MIPMAP_COUNT 4
 
@@ -53,7 +54,15 @@ int create_font_sheet(
     const uint8_t * file_data,
     const char * output_path,
     uint32_t entry_offset,
-    const char * path
+    const char * path,
+    const char * json_path,
+    const char * safe_texture_name
+);
+
+int export_font_metrics_json(
+    const WAD3Font * font,
+    const char * json_path,
+    const char * texture_name
 );
 
 int classic_func(
