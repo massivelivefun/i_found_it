@@ -45,15 +45,9 @@ int export_font_metrics_json(
     const char * json_path
 );
 
-int classic_func(
+int export_mipmaps(
+    ExportContext * ctx,
     const WAD3MipTexBuffers * b,
-    const char * output_path,
-    char ** paths
-);
-
-int modern_func(
-    const WAD3MipTexBuffers * b,
-    const char * output_path,
     char ** paths
 );
 

@@ -193,7 +193,7 @@ int main(int argc, char ** argv) {
                 const char * texture_name = entry->texture_name;
                 const char file_type = entry->file_type;
 
-                // use safe texture name
+                // Use safe texture name
                 char safe_texture_name[16] = {0};
                 memcpy(safe_texture_name, texture_name, 16);
                 safe_texture_name[15] = '\0';
@@ -207,13 +207,10 @@ int main(int argc, char ** argv) {
                     .classic_mode = classic,
                 };
 
-                size_t temp_memory_mark = arena_save(&wad_arena);
-
                 if (file_type_operations(&ctx, file_type)) {
                     fprintf(stderr, "file_type_operation failed.\n");
                 }
 
-                arena_restore(&wad_arena, temp_memory_mark);
                 break;
             case 2:
                 for (size_t i = 0; i < h.num_dirs; i += 1) {

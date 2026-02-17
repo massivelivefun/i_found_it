@@ -100,21 +100,9 @@ int create_textures_from_miptex(ExportContext * ctx, char ** paths) {
     WAD3MipTexBuffers b;
     init_wad3miptexbuffers_from_data(&b, &m, miptex_data);
 
-    switch((uint8_t)(ctx->classic_mode)) {
-        case true: {
-            if (classic_func(&b, ctx->output_path, paths) != IFI_OK) {
-                fprintf(stderr, "Classic failed.\n");
-                status = IFI_ERROR_INVALID;
-            }
-            break;
-        }
-        case false: {
-            if (modern_func(&b, ctx->output_path, paths) != IFI_OK) {
-                fprintf(stderr, "Modern failed.\n");
-                status = IFI_ERROR_INVALID;
-            }
-            break;
-        }
+    if (export_mipmaps(ctx, &b, paths) != IFI_OK) {
+        fprintf(stderr, "Exporting mipmaps failed.\n");
+        return 1;
     }
 
     return status;
@@ -154,13 +142,10 @@ int export_font_metrics_json(
     FILE * f = fopen(json_path, "w");
     if (f == NULL) { return 1; }
 
-    fprintf(f, "{\n");
-    fprintf(f, "  \"texture\": \"%s.ppm\",\n", ctx->texture_name);
-    fprintf(f, "  \"width\": %u,\n", font->width);
-    fprintf(f, "  \"height\": %u,\n", font->height);
-    fprintf(f, "  \"row_count\": %u,\n", font->row_count);
-    fprintf(f, "  \"row_height\": %u,\n", font->row_height);
-    fprintf(f, "  \"characters\": [\n");
+    fprintf(f, "{\n  \"texture\": \"%s.ppm\",\n  \"width\": %u,\n  "
+        "\"height\": %u,\n  \"row_count\": %u,\n  \"row_height\": %u,\n  "
+        "\"characters\": [\n", ctx->texture_name, font->width, font->height,
+        font->row_count, font->row_height);
 
     for (int i = 0; i < 255; i++) {
         fprintf(f, "    { \"id\": %d, \"offset\": %u, \"width\": %u },\n",
@@ -180,96 +165,73 @@ int export_font_metrics_json(
     return 0;
 }
 
-int modern_func(
+int export_mipmaps(
+    ExportContext * ctx,
     const WAD3MipTexBuffers * b,
-    const char * output_path,
     char ** paths
 ) {
-    uint8_t rgb_one[(b->width / 2) * (b->height / 2) * 3];
-    uint8_t rgb_two[(b->width / 4) * (b->height / 4) * 3];
-    uint8_t rgb_three[(b->width / 8) * (b->height / 8) * 3];
+    if (ctx->classic_mode) {
+        uint8_t * mip_ptrs[4] = {
+            b->mipmap_zero, b->mipmap_one, b->mipmap_two, b->mipmap_three
+        };
+        
+        for (int i = 0; i < 4; i++) {
+            uint32_t w = b->width >> i;
+            uint32_t h = b->height >> i;
+            
+            if (create_mipmap(paths[i], w, h, mip_ptrs[i], b->rgb_data) != 0)
+            {
+                fprintf(stderr, "Failed to create classic mipmap: %s\n",
+                    paths[i]);
+                return 1;
+            }
+        }
+    } else {
+        if (create_mipmap(paths[0], b->width, b->height, b->mipmap_zero,
+            b->rgb_data) != 0)
+        {
+            fprintf(stderr, "Failed to create modern mipmap zero: %s\n",
+                paths[0]);
+            return 1;
+        }
 
-    // MipMap Zero
-    if (create_mipmap(
-        paths[0], b->width, b->height, b->mipmap_zero, b->rgb_data) != 0
-    ) {
-        fprintf(stderr, "Failed to create mipmap zero at: %s\n",
-            output_path);
-        return 1;
-    }
+        size_t temp_mark = arena_save(ctx->arena);
 
-    // MipMap One
-    if (create_mipmap_modern(
-        paths[1], b->width / 2, b->height / 2, b->mipmap_zero, b->rgb_data, NULL, rgb_one
-    ) != 0) {
-        fprintf(stderr, "Failed to create mipmap one at path: %s\n",
-            output_path);
-        return 1;
-    }
+        uint32_t w1 = b->width / 2, h1 = b->height / 2;
+        uint32_t w2 = b->width / 4, h2 = b->height / 4;
+        uint32_t w3 = b->width / 8, h3 = b->height / 8;
 
-    // MipMap Two
-    if (create_mipmap_modern(
-        paths[2], b->width / 4, b->height / 4, NULL, NULL, rgb_one, rgb_two
-    ) != 0) {
-        fprintf(stderr, "Failed to create mipmap two at path: %s\n",
-            output_path);
-        return 1;
-    }
+        uint8_t * rgb_one   = arena_push(ctx->arena, w1 * h1 * 3);
+        uint8_t * rgb_two   = arena_push(ctx->arena, w2 * h2 * 3);
+        uint8_t * rgb_three = arena_push(ctx->arena, w3 * h3 * 3);
 
-    // MipMap Two
-    if (create_mipmap_modern(
-        paths[3], b->width / 8, b->height / 8, NULL, NULL, rgb_two, rgb_three
-    ) != 0) {
-        fprintf(stderr, "Failed to create mipmap three at path: %s\n",
-            output_path);
-        return 1;
-    }
-    return 0;
-}
+        if (!rgb_one || !rgb_two || !rgb_three) {
+            fprintf(stderr, "Arena out of memory allocating modern "
+                "downsample buffers.\n");
+            arena_restore(ctx->arena, temp_mark);
+            return 1;
+        }
 
-int classic_func(
-    const WAD3MipTexBuffers * b,
-    const char * output_path,
-    char ** paths
-) {
-    // MipMap Zero
-    if (create_mipmap(
-        paths[0], b->width, b->height,
-        b->mipmap_zero, b->rgb_data) != 0
-    ) {
-        fprintf(stderr, "Failed to create mipmap zero at: %s\n",
-            output_path);
-        return 1;
-    }
+        if (create_mipmap_modern(paths[1], w1, h1, b->mipmap_zero,
+            b->rgb_data, NULL, rgb_one) != 0)
+        {
+            fprintf(stderr, "Failed to create modern mipmap one: %s\n",
+                paths[1]);
+        }
+        else if (create_mipmap_modern(paths[2], w2, h2, NULL, NULL, rgb_one,
+            rgb_two) != 0)
+        {
+            fprintf(stderr, "Failed to create modern mipmap two: %s\n",
+                paths[2]);
+        }
+        else if (create_mipmap_modern(paths[3], w3, h3, NULL, NULL, rgb_two,
+            rgb_three) != 0)
+        {
+            fprintf(stderr, "Failed to create modern mipmap three: %s\n",
+                paths[3]);
+        }
 
-    // MipMap One
-    if (create_mipmap(
-        paths[1], b->width / 2, b->height / 2,
-        b->mipmap_one, b->rgb_data) != 0
-    ) {
-        fprintf(stderr, "Failed to create mipmap one at: %s\n",
-            output_path);
-        return 1;
-    }
-
-    // MipMap Two
-    if (create_mipmap(
-        paths[2], b->width / 4, b->height / 4,
-        b->mipmap_two, b->rgb_data) != 0
-    ) {
-        fprintf(stderr, "Failed to create mipmap two at: %s\n",
-            output_path);
-        return 1;
-    }
-
-    // MipMap Three
-    if (create_mipmap(
-        paths[3], b->width / 8, b->height / 8,
-        b->mipmap_three, b->rgb_data) != 0
-    ) {
-        fprintf(stderr, "Failed to create mipmap three at: %s\n",
-            output_path);
-        return 1;
+        arena_restore(ctx->arena, temp_mark);
     }
     return 0;
 }
@@ -299,8 +261,7 @@ int create_mipmap(
     return 0;
 }
 
-// I don't like this but i did this to combine functions
-// to be less crazy
+// I don't like this but i did this to combine functions to be less crazy
 int create_mipmap_modern(
     const char * path, 
     uint32_t dest_w,
