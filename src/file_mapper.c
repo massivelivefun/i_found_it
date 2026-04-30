@@ -4,13 +4,16 @@
 #ifdef _WIN32
 
 bool map_file(MappedFile * f, const char * filepath) {
-    if (!f) { return false; }
+    if (!f) {
+        return false;
+    }
     f->data = NULL;
     f->size = 0;
 
     f->file_handle = CreateFileA(
-        filepath, GENERIC_READ, FILE_SHARE_READ,
-        NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        filepath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL, NULL
+    );
     if (f->file_handle == INVALID_HANDLE_VALUE) {
         fprintf(stderr, "Failed to open file on Windows.\n");
         return false;
@@ -23,8 +26,8 @@ bool map_file(MappedFile * f, const char * filepath) {
     }
     f->size = (size_t)file_size.QuadPart;
 
-    f->map_handle = CreateFileMappingA(
-        f->file_handle, NULL, PAGE_READONLY, 0, 0, NULL);
+    f->map_handle =
+        CreateFileMappingA(f->file_handle, NULL, PAGE_READONLY, 0, 0, NULL);
     if (f->map_handle == NULL) {
         CloseHandle(f->file_handle);
         return false;
@@ -52,12 +55,14 @@ void unmap_file(MappedFile * f) {
 #else
 
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 bool map_file(MappedFile * f, const char * filepath) {
-    if (!f) { return false; }
+    if (!f) {
+        return false;
+    }
     f->data = NULL;
     f->size = 0;
 
@@ -76,7 +81,7 @@ bool map_file(MappedFile * f, const char * filepath) {
     f->size = file_stat.st_size;
 
     f->data = (uint8_t *)mmap(NULL, f->size, PROT_READ, MAP_PRIVATE, fd, 0);
-    
+
     close(fd);
 
     if (f->data == MAP_FAILED) {

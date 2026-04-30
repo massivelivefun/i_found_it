@@ -1,18 +1,18 @@
 #include "file_creation.h"
 
 #include "wad3/wad3directoryentry.h"
+#include "wad3/wad3font.h"
 #include "wad3/wad3header.h"
 #include "wad3/wad3pic.h"
-#include "wad3/wad3font.h"
 
 #include "ifi_errors.h"
 #include "terminal.h"
 
-const char * mipmap_suffixes[] = { "_mm0", "_mm1", "_mm2", "_mm3" };
+const char * mipmap_suffixes[] = {"_mm0", "_mm1", "_mm2", "_mm3"};
 
 // CONTRACT: Valid arguments need to be null-terminated strings.
 // @param char * texture_name_suffixes - CANNOT be passed in with NULL
-// 
+//
 int create_multi_arena_output_file_paths(
     ExportContext * ctx,
     char ** paths,
@@ -20,8 +20,9 @@ int create_multi_arena_output_file_paths(
     const char * file_extension,
     size_t texture_count
 ) {
-    if (ctx == NULL || paths == NULL || (texture_name_suffixes == NULL
-        && texture_count > 0) || file_extension == NULL)
+    if (ctx == NULL || paths == NULL ||
+        (texture_name_suffixes == NULL && texture_count > 0) ||
+        file_extension == NULL)
     {
         fprintf(stderr, "Arguments cannot be NULL.\n");
         return IFI_ERROR_NULL_ARGS;
@@ -55,11 +56,11 @@ int create_single_arena_output_file_path(
         return IFI_ERROR_NULL_ARGS;
     }
     // The suffix can be NULL so then it will have an empty length
-    size_t suffix_len = (texture_name_suffix == NULL) ? 0 :
-        strlen(texture_name_suffix);
+    size_t suffix_len =
+        (texture_name_suffix == NULL) ? 0 : strlen(texture_name_suffix);
     // Include null terminator into the length with the plus one
     size_t len = strlen(ctx->output_path) + strlen(ctx->texture_name) +
-        suffix_len + strlen(file_extension) + 1;
+                 suffix_len + strlen(file_extension) + 1;
     char * output_file_name = (char *)arena_push(ctx->arena, len);
     if (output_file_name == NULL) {
         fprintf(stderr, "Failed to allocate memory for output file path.\n");
@@ -67,8 +68,8 @@ int create_single_arena_output_file_path(
     }
     snprintf(
         output_file_name, len, "%s%s%s%s", ctx->output_path, ctx->texture_name,
-        (texture_name_suffix == NULL) ? "" : texture_name_suffix,
-        file_extension);
+        (texture_name_suffix == NULL) ? "" : texture_name_suffix, file_extension
+    );
     *path = output_file_name;
     return 0;
 }
@@ -76,15 +77,13 @@ int create_single_arena_output_file_path(
 int create_picture(ExportContext * ctx, char * path) {
     const uint8_t * picture_data = ctx->file_data + ctx->entry_offset;
 
-    WAD3Pic pic;
+    WAD3Pic pic = {0};
     init_wad3pic_from_data(&pic, picture_data);
 
-    int picture_result = create_mipmap(
-        path, pic.width, pic.height, pic.indices, pic.rgb_data
-    );
+    int picture_result =
+        create_mipmap(path, pic.width, pic.height, pic.indices, pic.rgb_data);
     if (picture_result != 0) {
-        fprintf(stderr, "Failed to create picture at: %s\n",
-            ctx->output_path);
+        fprintf(stderr, "Failed to create picture at: %s\n", ctx->output_path);
         return 1;
     }
     return 0;
@@ -94,10 +93,10 @@ int create_textures_from_miptex(ExportContext * ctx, char ** paths) {
     int status = IFI_OK;
     const uint8_t * miptex_data = ctx->file_data + ctx->entry_offset;
 
-    WAD3MipTex m;
+    WAD3MipTex m = {0};
     init_wad3miptex_from_data(&m, miptex_data);
 
-    WAD3MipTexBuffers b;
+    WAD3MipTexBuffers b = {0};
     init_wad3miptexbuffers_from_data(&b, &m, miptex_data);
 
     if (export_mipmaps(ctx, &b, paths) != IFI_OK) {
@@ -111,18 +110,18 @@ int create_textures_from_miptex(ExportContext * ctx, char ** paths) {
 int create_font_sheet(
     ExportContext * ctx,
     const char * path,
-    const char * json_path)
-{
+    const char * json_path
+) {
     const uint8_t * font_data = ctx->file_data + ctx->entry_offset;
-    
+
     WAD3Font font;
     init_wad3font_from_data(&font, font_data);
 
     if (create_mipmap(
-        path, font.width, font.height, font.indices, font.rgb_data) != 0)
+            path, font.width, font.height, font.indices, font.rgb_data
+        ) != 0)
     {
-        fprintf(stderr, "Failed to create font image: %s\n",
-            ctx->output_path);
+        fprintf(stderr, "Failed to create font image: %s\n", ctx->output_path);
         return 1;
     }
 
@@ -140,24 +139,29 @@ int export_font_metrics_json(
     const char * json_path
 ) {
     FILE * f = fopen(json_path, "w");
-    if (f == NULL) { return 1; }
+    if (f == NULL) {
+        return 1;
+    }
 
-    fprintf(f, "{\n  \"texture\": \"%s.ppm\",\n  \"width\": %u,\n  "
+    fprintf(
+        f,
+        "{\n  \"texture\": \"%s.ppm\",\n  \"width\": %u,\n  "
         "\"height\": %u,\n  \"row_count\": %u,\n  \"row_height\": %u,\n  "
-        "\"characters\": [\n", ctx->texture_name, font->width, font->height,
-        font->row_count, font->row_height);
+        "\"characters\": [\n",
+        ctx->texture_name, font->width, font->height, font->row_count,
+        font->row_height
+    );
 
     for (int i = 0; i < 255; i++) {
-        fprintf(f, "    { \"id\": %d, \"offset\": %u, \"width\": %u },\n",
-            i,
-            font->char_info[i].start_offset,
-            font->char_info[i].char_width
+        fprintf(
+            f, "    { \"id\": %d, \"offset\": %u, \"width\": %u },\n", i,
+            font->char_info[i].start_offset, font->char_info[i].char_width
         );
     }
 
-    fprintf(f, "    { \"id\": 255, \"offset\": %u, \"width\": %u }\n",
-        font->char_info[255].start_offset,
-        font->char_info[255].char_width
+    fprintf(
+        f, "    { \"id\": 255, \"offset\": %u, \"width\": %u }\n",
+        font->char_info[255].start_offset, font->char_info[255].char_width
     );
 
     fprintf(f, "  ]\n}\n");
@@ -174,24 +178,26 @@ int export_mipmaps(
         uint8_t * mip_ptrs[4] = {
             b->mipmap_zero, b->mipmap_one, b->mipmap_two, b->mipmap_three
         };
-        
+
         for (int i = 0; i < 4; i++) {
             uint32_t w = b->width >> i;
             uint32_t h = b->height >> i;
-            
-            if (create_mipmap(paths[i], w, h, mip_ptrs[i], b->rgb_data) != 0)
-            {
-                fprintf(stderr, "Failed to create classic mipmap: %s\n",
-                    paths[i]);
+
+            if (create_mipmap(paths[i], w, h, mip_ptrs[i], b->rgb_data) != 0) {
+                fprintf(
+                    stderr, "Failed to create classic mipmap: %s\n", paths[i]
+                );
                 return 1;
             }
         }
     } else {
-        if (create_mipmap(paths[0], b->width, b->height, b->mipmap_zero,
-            b->rgb_data) != 0)
+        if (create_mipmap(
+                paths[0], b->width, b->height, b->mipmap_zero, b->rgb_data
+            ) != 0)
         {
-            fprintf(stderr, "Failed to create modern mipmap zero: %s\n",
-                paths[0]);
+            fprintf(
+                stderr, "Failed to create modern mipmap zero: %s\n", paths[0]
+            );
             return 1;
         }
 
@@ -201,34 +207,40 @@ int export_mipmaps(
         uint32_t w2 = b->width / 4, h2 = b->height / 4;
         uint32_t w3 = b->width / 8, h3 = b->height / 8;
 
-        uint8_t * rgb_one   = arena_push(ctx->arena, w1 * h1 * 3);
-        uint8_t * rgb_two   = arena_push(ctx->arena, w2 * h2 * 3);
+        uint8_t * rgb_one = arena_push(ctx->arena, w1 * h1 * 3);
+        uint8_t * rgb_two = arena_push(ctx->arena, w2 * h2 * 3);
         uint8_t * rgb_three = arena_push(ctx->arena, w3 * h3 * 3);
 
         if (!rgb_one || !rgb_two || !rgb_three) {
-            fprintf(stderr, "Arena out of memory allocating modern "
-                "downsample buffers.\n");
+            fprintf(
+                stderr, "Arena out of memory allocating modern "
+                        "downsample buffers.\n"
+            );
             arena_restore(ctx->arena, temp_mark);
             return 1;
         }
 
-        if (create_mipmap_modern(paths[1], w1, h1, b->mipmap_zero,
-            b->rgb_data, NULL, rgb_one) != 0)
+        if (create_mipmap_modern(
+                paths[1], w1, h1, b->mipmap_zero, b->rgb_data, NULL, rgb_one
+            ) != 0)
         {
-            fprintf(stderr, "Failed to create modern mipmap one: %s\n",
-                paths[1]);
-        }
-        else if (create_mipmap_modern(paths[2], w2, h2, NULL, NULL, rgb_one,
-            rgb_two) != 0)
+            fprintf(
+                stderr, "Failed to create modern mipmap one: %s\n", paths[1]
+            );
+        } else if (create_mipmap_modern(
+                       paths[2], w2, h2, NULL, NULL, rgb_one, rgb_two
+                   ) != 0)
         {
-            fprintf(stderr, "Failed to create modern mipmap two: %s\n",
-                paths[2]);
-        }
-        else if (create_mipmap_modern(paths[3], w3, h3, NULL, NULL, rgb_two,
-            rgb_three) != 0)
+            fprintf(
+                stderr, "Failed to create modern mipmap two: %s\n", paths[2]
+            );
+        } else if (create_mipmap_modern(
+                       paths[3], w3, h3, NULL, NULL, rgb_two, rgb_three
+                   ) != 0)
         {
-            fprintf(stderr, "Failed to create modern mipmap three: %s\n",
-                paths[3]);
+            fprintf(
+                stderr, "Failed to create modern mipmap three: %s\n", paths[3]
+            );
         }
 
         arena_restore(ctx->arena, temp_mark);
@@ -244,7 +256,9 @@ int create_mipmap(
     uint8_t * rgb_data
 ) {
     FILE * f = fopen(path, "wb");
-    if (f == NULL) { return 1; }
+    if (f == NULL) {
+        return 1;
+    }
 
     fprintf(f, "P6\n");
     fprintf(f, "%d %d\n", width, height);
@@ -263,16 +277,18 @@ int create_mipmap(
 
 // I don't like this but i did this to combine functions to be less crazy
 int create_mipmap_modern(
-    const char * path, 
+    const char * path,
     uint32_t dest_w,
-    uint32_t dest_h, 
+    uint32_t dest_h,
     const uint8_t * src_indices,
     const uint8_t * palette,
     const uint8_t * src_rgb,
     uint8_t * dest_rgb
 ) {
     FILE * f = fopen(path, "wb");
-    if (f == NULL) { return 1; }
+    if (f == NULL) {
+        return 1;
+    }
 
     fprintf(f, "P6\n%u %u\n255\n", dest_w, dest_h);
     uint32_t src_w = dest_w * 2;
@@ -286,18 +302,18 @@ int create_mipmap_modern(
 
             if (src_rgb != NULL) {
                 uint32_t row_stride = src_w * 3;
-                
+
                 uint32_t p1 = (src_y * row_stride) + (src_x * 3);
                 uint32_t p2 = (src_y * row_stride) + ((src_x + 1) * 3);
                 uint32_t p3 = ((src_y + 1) * row_stride) + (src_x * 3);
                 uint32_t p4 = ((src_y + 1) * row_stride) + ((src_x + 1) * 3);
 
-                r = src_rgb[p1 + 0] + src_rgb[p2 + 0] +
-                    src_rgb[p3 + 0] + src_rgb[p4 + 0];
-                g = src_rgb[p1 + 1] + src_rgb[p2 + 1] +
-                    src_rgb[p3 + 1] + src_rgb[p4 + 1];
-                b = src_rgb[p1 + 2] + src_rgb[p2 + 2] +
-                    src_rgb[p3 + 2] + src_rgb[p4 + 2];
+                r = src_rgb[p1 + 0] + src_rgb[p2 + 0] + src_rgb[p3 + 0] +
+                    src_rgb[p4 + 0];
+                g = src_rgb[p1 + 1] + src_rgb[p2 + 1] + src_rgb[p3 + 1] +
+                    src_rgb[p4 + 1];
+                b = src_rgb[p1 + 2] + src_rgb[p2 + 2] + src_rgb[p3 + 2] +
+                    src_rgb[p4 + 2];
 
             } else {
                 uint32_t p1 = (src_y * src_w) + src_x;
@@ -306,21 +322,21 @@ int create_mipmap_modern(
                 uint32_t p4 = ((src_y + 1) * src_w) + (src_x + 1);
 
                 r = palette[src_indices[p1] * 3 + 0] +
-                    palette[src_indices[p2] * 3 + 0] + 
+                    palette[src_indices[p2] * 3 + 0] +
                     palette[src_indices[p3] * 3 + 0] +
                     palette[src_indices[p4] * 3 + 0];
                 g = palette[src_indices[p1] * 3 + 1] +
-                    palette[src_indices[p2] * 3 + 1] + 
+                    palette[src_indices[p2] * 3 + 1] +
                     palette[src_indices[p3] * 3 + 1] +
                     palette[src_indices[p4] * 3 + 1];
                 b = palette[src_indices[p1] * 3 + 2] +
-                    palette[src_indices[p2] * 3 + 2] + 
+                    palette[src_indices[p2] * 3 + 2] +
                     palette[src_indices[p3] * 3 + 2] +
                     palette[src_indices[p4] * 3 + 2];
             }
 
-            fputc((uint8_t)(r / 4), f); 
-            fputc((uint8_t)(g / 4), f); 
+            fputc((uint8_t)(r / 4), f);
+            fputc((uint8_t)(g / 4), f);
             fputc((uint8_t)(b / 4), f);
 
             uint32_t dest_idx = ((y * dest_w) + x) * 3;

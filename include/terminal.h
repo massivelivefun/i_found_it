@@ -1,16 +1,16 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
-    #include <direct.h>
+#include <direct.h>
 #else
-    #include <sys/stat.h>
-    #include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #endif
 
 typedef struct {

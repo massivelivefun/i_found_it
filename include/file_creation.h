@@ -2,8 +2,8 @@
 #define FILE_CREATION_H
 
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "wad3/miptex.h"
 #include "wad3/wad3directoryentry.h"
@@ -60,9 +60,9 @@ int create_mipmap(
 );
 
 int create_mipmap_modern(
-    const char * path, 
+    const char * path,
     uint32_t dest_w,
-    uint32_t dest_h, 
+    uint32_t dest_h,
     const uint8_t * src_indices,
     const uint8_t * palette,
     const uint8_t * src_rgb,

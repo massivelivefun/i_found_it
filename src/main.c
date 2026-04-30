@@ -1,30 +1,30 @@
 #include <ctype.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include "wad3/wad3directoryentry.h"
+#include "wad3/wad3filetypes.h"
+#include "wad3/wad3font.h"
 #include "wad3/wad3header.h"
 #include "wad3/wad3pic.h"
-#include "wad3/wad3font.h"
-#include "wad3/wad3filetypes.h"
 
 #include "export_context.h"
-#include "utils.h"
 #include "file_creation.h"
 #include "file_mapper.h"
 #include "terminal.h"
+#include "utils.h"
 
 int file_type_operations(ExportContext * ctx, const char file_type) {
     switch (file_type) {
     case PIC: {
         // Picture, Qpic
         char * path;
-        if (create_single_arena_output_file_path(
-            ctx, &path, "", ".ppm") != IFI_OK)
+        if (create_single_arena_output_file_path(ctx, &path, "", ".ppm") !=
+            IFI_OK)
         {
             fprintf(stderr, "Failed to create path.\n");
             return 1;
@@ -40,7 +40,8 @@ int file_type_operations(ExportContext * ctx, const char file_type) {
         // Mipmap Texture
         char * paths[MIPMAP_COUNT];
         if (create_multi_arena_output_file_paths(
-            ctx, paths, mipmap_suffixes, ".ppm", MIPMAP_COUNT) != IFI_OK)
+                ctx, paths, mipmap_suffixes, ".ppm", MIPMAP_COUNT
+            ) != IFI_OK)
         {
             fprintf(stderr, "Failed to create paths.\n");
             return 1;
@@ -54,15 +55,16 @@ int file_type_operations(ExportContext * ctx, const char file_type) {
     case FONT: {
         // Font Sprite Sheet
         char * path;
-        if (create_single_arena_output_file_path(
-            ctx, &path, "", ".ppm") != IFI_OK)
+        if (create_single_arena_output_file_path(ctx, &path, "", ".ppm") !=
+            IFI_OK)
         {
             fprintf(stderr, "Failed to create ppm file.\n");
             return 1;
         }
         char * json_path;
         if (create_single_arena_output_file_path(
-            ctx, &json_path, "", ".json") != IFI_OK)
+                ctx, &json_path, "", ".json"
+            ) != IFI_OK)
         {
             fprintf(stderr, "Failed to create json.\n");
             return 1;
@@ -87,8 +89,12 @@ int main(int argc, char ** argv) {
     char * program_name = argv[0];
 
     if (argc != 3) {
-        fprintf(stderr, "Three args are needed: %s <path/input_file.wad> "
-            "<output_path>\n", program_name);
+        fprintf(
+            stderr,
+            "Three args are needed: %s <path/input_file.wad> "
+            "<output_path>\n",
+            program_name
+        );
         result = EXIT_FAILURE;
         goto return_from_main;
     }
@@ -102,7 +108,6 @@ int main(int argc, char ** argv) {
         goto return_from_main;
     }
 
-    // Pass the pure byte data directly to your validator
     if (!validate_wad_structure(wad_file.data, wad_file.size)) {
         fprintf(stderr, "Invalid WAD structure!\n");
         result = EXIT_FAILURE;
@@ -119,8 +124,7 @@ int main(int argc, char ** argv) {
 
     WAD3Header h = {0};
     if (init_wad3header_from_data(&h, wad_file.data) != IFI_OK) {
-        fprintf(stderr, "Failed to read wad3 header: %s\n",
-            input_file_path);
+        fprintf(stderr, "Failed to read wad3 header: %s\n", input_file_path);
         result = EXIT_FAILURE;
         goto cleanup;
     }
@@ -133,8 +137,10 @@ int main(int argc, char ** argv) {
         &wad_arena, wad_file.data, h.dir_offset, h.num_dirs
     );
     if (directory_entries == NULL) {
-        fprintf(stderr, "Fatal: Arena out of memory while parsing "
-            "directories.\n");
+        fprintf(
+            stderr, "Fatal: Arena out of memory while parsing "
+                    "directories.\n"
+        );
         result = EXIT_FAILURE;
         goto cleanup;
     }
@@ -156,8 +162,7 @@ int main(int argc, char ** argv) {
             menu_buffer[i] = (char)tolower((unsigned char)menu_buffer[i]);
         }
 
-        if (strcmp(menu_buffer, "q") == 0 ||
-            strcmp(menu_buffer, "quit") == 0) {
+        if (strcmp(menu_buffer, "q") == 0 || strcmp(menu_buffer, "quit") == 0) {
             printf("Quitting program.\n");
             quit = true;
             break;
@@ -171,61 +176,60 @@ int main(int argc, char ** argv) {
         }
 
         switch (choice) {
-            case 1:
-                if (make_dir(output_path) == IFI_OK) {
-                    printf("Directory created successfully: %s\n",
-                        output_path);
-                } else {
-                    if (errno != EEXIST) {
-                        perror("Error creating directory.\n");
-                        break;
-                    }
-                }
-                uint32_t number = 0;
-                if (handle_file_entry_select(&number, h.num_dirs)
-                    != IFI_OK) {
-                    fprintf(stderr, "Failed to parse selection.\n");
+        case 1:
+            if (make_dir(output_path) == IFI_OK) {
+                printf("Directory created successfully: %s\n", output_path);
+            } else {
+                if (errno != EEXIST) {
+                    perror("Error creating directory.\n");
                     break;
                 }
-
-                WAD3DirectoryEntry * entry = &(directory_entries[number - 1]);
-                uint32_t entry_offset = entry->entry_offset;
-                const char * texture_name = entry->texture_name;
-                const char file_type = entry->file_type;
-
-                // Use safe texture name
-                char safe_texture_name[16] = {0};
-                memcpy(safe_texture_name, texture_name, 16);
-                safe_texture_name[15] = '\0';
-
-                ExportContext ctx = {
-                    .arena = &wad_arena,
-                    .file_data = wad_file.data,
-                    .output_path = output_path,
-                    .texture_name = safe_texture_name,
-                    .entry_offset = entry_offset,
-                    .classic_mode = classic,
-                };
-
-                if (file_type_operations(&ctx, file_type)) {
-                    fprintf(stderr, "file_type_operation failed.\n");
-                }
-
+            }
+            uint32_t number = 0;
+            if (handle_file_entry_select(&number, h.num_dirs) != IFI_OK) {
+                fprintf(stderr, "Failed to parse selection.\n");
                 break;
-            case 2:
-                for (size_t i = 0; i < h.num_dirs; i += 1) {
-                    printf("\n%zu", i + 1);
-                    print_wad3directoryentry(&directory_entries[i]);
-                }
-                break;
-            case 3:
-                classic = !classic;
-                printf("Classic mode is now set to: %s\n",
-                    classic ? "true" : "false");
-                break;
-            default:
-                printf("\n(!) Invalid input. Please type 1, 2, 3, or q.\n");
-                break;
+            }
+
+            WAD3DirectoryEntry * entry = &(directory_entries[number - 1]);
+            uint32_t entry_offset = entry->entry_offset;
+            const char * texture_name = entry->texture_name;
+            const char file_type = entry->file_type;
+
+            // Use safe texture name
+            char safe_texture_name[16] = {0};
+            memcpy(safe_texture_name, texture_name, 16);
+            safe_texture_name[15] = '\0';
+
+            ExportContext ctx = {
+                .arena = &wad_arena,
+                .file_data = wad_file.data,
+                .output_path = output_path,
+                .texture_name = safe_texture_name,
+                .entry_offset = entry_offset,
+                .classic_mode = classic,
+            };
+
+            if (file_type_operations(&ctx, file_type)) {
+                fprintf(stderr, "file_type_operation failed.\n");
+            }
+
+            break;
+        case 2:
+            for (size_t i = 0; i < h.num_dirs; i += 1) {
+                printf("\n%zu", i + 1);
+                print_wad3directoryentry(&directory_entries[i]);
+            }
+            break;
+        case 3:
+            classic = !classic;
+            printf(
+                "Classic mode is now set to: %s\n", classic ? "true" : "false"
+            );
+            break;
+        default:
+            printf("\n(!) Invalid input. Please type 1, 2, 3, or q.\n");
+            break;
         }
     } while (quit == false);
 

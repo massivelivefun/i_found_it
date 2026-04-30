@@ -16,7 +16,7 @@ DEPS = $(shell find $(INCLUDE) -name '*.h')
 
 OBJ_NO_MAIN = $(filter-out $(BUILD)/main.o, $(OBJ))
 
-.PHONY: all clean debug test
+.PHONY: all clean debug test lint format
 
 all: $(TARGET)
 
@@ -47,6 +47,12 @@ leaks: $(TARGET)
 	@echo "Running macOS Leaks check..."
 	# --atExit checks for leaks when the program finishes
 	leaks --atExit -- ./$(TARGET) $(ARGS)
+
+lint:
+	cppcheck --enable=all --inconclusive --std=c99 --suppress=missingIncludeSystem -Iinclude src/
+
+format:
+	clang-format -i src/*.c include/*.h
 
 debug:
 	@echo "C Source files: $(SRC)"

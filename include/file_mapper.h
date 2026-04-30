@@ -1,12 +1,12 @@
 #ifndef FILE_MAPPER_H
 #define FILE_MAPPER_H
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef _WIN32
-    #include <windows.h>
+#include <windows.h>
 #endif
 
 typedef struct {
